@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mapa de grupos · AA Área 64 Región 02</title>
+  <meta name="description" content="Mapa de los grupos de Alcohólicos Anónimos en Mexicali y su zona.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="/assets/estilos.css">
+</head>
+<body>
+  <div id="encabezado"></div>
+
+  <main class="contenedor" id="contenido">
+    <h1>Mapa de grupos</h1>
+
+    <section class="filtros" aria-label="Filtros">
+      <label>Distrito
+        <select id="f-distrito"><option value="">Todos</option></select>
+      </label>
+      <label>Ciudad
+        <select id="f-ciudad"><option value="">Todas</option></select>
+      </label>
+      <label>Buscar grupo
+        <input id="f-grupo" type="search" placeholder="Nombre del grupo" autocomplete="off">
+      </label>
+      <label>Buscar ubicación
+        <input id="f-ubic" type="search" placeholder="Palabra, dirección, grupo" autocomplete="off">
+      </label>
+      <button id="limpiar" class="btn-sec" type="button">Limpiar filtros</button>
+    </section>
+
+    <p class="total" id="total" aria-live="polite">Cargando grupos…</p>
+    <div id="mapa" role="region" aria-label="Mapa de grupos"></div>
+    <p class="nota-mapa" id="nota-mapa"></p>
+  </main>
+
+  <div id="pie"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="/assets/sitio.js"></script>
+  <script src="/assets/mapa.js"></script>
+</body>
+</html>
