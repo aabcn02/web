@@ -3,7 +3,7 @@
 // Cada grupo se intenta UNA sola vez, así que llamarla de más no hace daño.
 // Usa Nominatim (OpenStreetMap): máximo 1 consulta por segundo, por eso va en tandas.
 
-const POR_TANDA = 10;         // grupos por visita (cabe en el límite de Cloudflare)
+const POR_TANDA = 6;        // grupos por visita (cabe en el límite de Cloudflare)
 const PAUSA_MS = 1100;         // respeta el límite de Nominatim
 const AGENTE = "aabcn02.org directorio AA (contacto@aabcn02.org)";
 // Cuadro que cubre Mexicali, San Luis R.C. y San Felipe; descarta resultados lejanos
@@ -52,8 +52,12 @@ export async function onRequestGet({ env }) {
     salida += `\n\nFaltan ${faltan} grupos. Recarga esta página para seguir.`;
   } else {
     const { results } = await env.DB.prepare(
-      `SELECT grupo, ciudad, precision_ubic FROM grupos
-        WHERE activo = 1 AND (lat IS NULL OR precision_ubic IN ('calle', 'colonia', 'cp')) ORDER BY distrito, grupo`
+      `SELECT grupo, ciudad, CASE WHEN lat IS NOT NULL AND maps_url IS NOT NULL AND precision_ubic <> 'link'
+                                  THEN 'sin_link' ELSE precision_ubic END AS precision_ubic
+         FROM grupos
+        WHERE activo = 1 AND (lat IS NULL OR precision_ubic IN ('calle', 'colonia', 'cp')
+              OR (maps_url IS NOT NULL AND precision_ubic <> 'link'))
+        ORDER BY CAST(distrito AS INTEGER), grupo`
     ).all();
     const sin = results.filter((r) => !r.precision_ubic);
     const aprox = results.filter((r) => r.precision_ubic);
@@ -108,7 +112,10 @@ async function desdeLinkDeMaps(url) {
   for (let i = 0; i < 4; i++) {
     const p = coordsEnTexto(actual);
     if (p) return p;
-    const r = await fetch(actual, { redirect: "manual", headers: { "user-agent": "Mozilla/5.0" } });
+    const r = await fetch(actual, {
+      redirect: "manual",
+      headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "accept-language": "es-MX,es;q=0.9" },
+    });
     const sig = r.headers.get("location");
     if (!sig) {
       const cuerpo = r.ok ? await r.text() : "";
@@ -120,8 +127,16 @@ async function desdeLinkDeMaps(url) {
 }
 
 function coordsEnTexto(t) {
-  const s = decodeURIComponent(String(t || ""));
-  const pats = [/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/, /@(-?\d+\.\d+),(-?\d+\.\d+)/, /[?&](?:q|query|ll|center|destination)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/];
+  let s = String(t || "");
+  try { s = decodeURIComponent(s); } catch (_) { /* texto con % sueltos */ }
+  s = s.replace(/&amp;/g, "&").replace(/\\u003d/g, "=").replace(/\\u0026/g, "&");
+  // [lat, lng] en este orden
+  const pats = [
+    /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,                                       // .../data=!3d32.6!4d-115.4
+    /@(-?\d+\.\d+),(-?\d+\.\d+)/,                                           // .../@32.6,-115.4,17z
+    /[?&;](?:q|query|ll|center|destination|daddr)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/, // ?q=32.6,-115.4  / staticmap?center=
+    /\[null,null,(-?\d+\.\d+),(-?\d+\.\d+)\]/,                              // datos dentro del HTML de Google Maps
+  ];
   for (const re of pats) {
     const m = s.match(re);
     if (m) {
@@ -156,7 +171,8 @@ function dentroDeCaja(lat, lng) {
 
 function etiqueta(p) {
   return { link: "del link de Google Maps", exacta: "dirección exacta", calle: "por la calle, sin colonia (revisar)",
-           colonia: "aproximado (centro de la colonia)", cp: "aproximado (código postal)", manual: "puesto a mano" }[p] || p;
+           colonia: "aproximado (centro de la colonia)",
+           sin_link: "no se pudo leer su link de Google Maps; se ubicó por la dirección (revisar)", cp: "aproximado (código postal)", manual: "puesto a mano" }[p] || p;
 }
 
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
