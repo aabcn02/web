@@ -37,7 +37,7 @@
 
   try {
     const grupos = await cargarGrupos();
-    prepararFiltros(grupos, { ciudad: "f-ciudad", distrito: "f-distrito", grupo: "f-grupo", ubic: "f-ubic", limpiar: "limpiar" }, pintar);
+    prepararFiltros(grupos, { ciudad: "f-ciudad", distrito: "f-distrito", buscar: "f-buscar", limpiar: "limpiar" }, pintar);
   } catch (e) {
     total.textContent = "";
     lista.innerHTML = `<p class="error">${esc(e.message)} Intenta de nuevo en un momento.</p>`;

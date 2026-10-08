@@ -67,7 +67,7 @@
     // Links viejos tipo /mapa#g-12 → /mapa?id=12
     const viejo = (location.hash.match(/^#g-(\d+)$/) || [])[1];
     if (viejo) history.replaceState(null, "", `${location.pathname}?id=${viejo}`);
-    prepararFiltros(grupos, { ciudad: "f-ciudad", distrito: "f-distrito", grupo: "f-grupo", ubic: "f-ubic", limpiar: "limpiar" }, pintar);
+    prepararFiltros(grupos, { ciudad: "f-ciudad", distrito: "f-distrito", buscar: "f-buscar", limpiar: "limpiar" }, pintar);
   } catch (e) {
     total.innerHTML = `<span class="error" style="display:block">${esc(e.message)} Intenta de nuevo en un momento.</span>`;
   }

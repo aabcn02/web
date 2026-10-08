@@ -154,28 +154,37 @@ async function cargarGrupos() {
 }
 
 /* ===== Filtros compartidos (Directorio y Mapa) ===== */
-function llenarSelect(select, valores) {
+function llenarSelect(select, valores, etiqueta = (v) => v) {
   const primero = select.options[0];
   select.innerHTML = "";
   select.appendChild(primero);
   valores.forEach((v) => {
     const o = document.createElement("option");
-    o.value = v; o.textContent = v;
+    o.value = v; o.textContent = etiqueta(v);
     select.appendChild(o);
   });
+}
+
+// Un solo buscador: nombre del grupo, calle, colonia, referencia, horario...
+// Cada palabra tiene que aparecer ("pueblo nuevo" encuentra "Col. Pueblo Nuevo")
+function coincide(g, q) {
+  if (!q) return true;
+  const texto = normal(`${g.grupo} ${g.direccion} ${g.colonia} ${g.referencia} ${g.ciudad} ${g.horario} ${g.idioma}`);
+  return q.split(/\s+/).every((p) => texto.includes(p));
 }
 
 function prepararFiltros(grupos, ids, alCambiar) {
   const el = {
     ciudad:   document.getElementById(ids.ciudad),
     distrito: document.getElementById(ids.distrito),
-    grupo:    document.getElementById(ids.grupo),
-    ubic:     document.getElementById(ids.ubic),
+    buscar:   document.getElementById(ids.buscar),
     limpiar:  document.getElementById(ids.limpiar),
   };
   const unicos = (campo) => [...new Set(grupos.map((g) => String(g[campo] ?? "").trim()).filter(Boolean))];
   llenarSelect(el.ciudad, unicos("ciudad").sort((a, b) => a.localeCompare(b, "es")));
-  llenarSelect(el.distrito, unicos("distrito").sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0) || a.localeCompare(b, "es")));
+  llenarSelect(el.distrito,
+    unicos("distrito").sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0) || a.localeCompare(b, "es")),
+    (d) => `Distrito ${d}`);
 
   // ?id=12 en la dirección: muestra solo ese grupo (links compartidos)
   let soloId = new URLSearchParams(location.search).get("id");
@@ -188,31 +197,30 @@ function prepararFiltros(grupos, ids, alCambiar) {
 
   const aplicar = () => {
     if (soloId) {
+      el.limpiar.hidden = true;
       alCambiar(grupos.filter((g) => String(g.id) === soloId), { solo: true });
       return;
     }
     const c = el.ciudad.value, d = el.distrito.value;
-    const qg = normal(el.grupo.value), qu = normal(el.ubic.value);
+    const texto = el.buscar.value.trim();
+    const q = normal(texto);
     const lista = grupos.filter((g) =>
       (!c || String(g.ciudad).trim() === c) &&
       (!d || String(g.distrito).trim() === d) &&
-      (!qg || normal(g.grupo).includes(qg)) &&
-      (!qu || normal(`${g.direccion} ${g.colonia} ${g.referencia} ${g.ciudad} ${g.grupo} ${g.horario} ${g.idioma}`).includes(qu))
+      coincide(g, q)
     );
-    const activos = [
-      d && `Distrito ${d}`, c,
-      el.grupo.value.trim() && `Grupo: “${el.grupo.value.trim()}”`,
-      el.ubic.value.trim() && `Ubicación: “${el.ubic.value.trim()}”`,
-    ].filter(Boolean);
+    const activos = [d && `Distrito ${d}`, c, texto && `“${texto}”`].filter(Boolean);
+    el.limpiar.hidden = activos.length === 0;
     alCambiar(lista, { activos });
   };
   const alFiltrar = () => { quitarSolo(); aplicar(); };
   el.ciudad.addEventListener("change", alFiltrar);
   el.distrito.addEventListener("change", alFiltrar);
-  el.grupo.addEventListener("input", alFiltrar);
-  el.ubic.addEventListener("input", alFiltrar);
+  el.buscar.addEventListener("input", alFiltrar);
+  // En el celular, "Buscar" en el teclado cierra el teclado para ver resultados
+  el.buscar.addEventListener("keydown", (e) => { if (e.key === "Enter") el.buscar.blur(); });
   el.limpiar.addEventListener("click", () => {
-    el.ciudad.value = ""; el.distrito.value = ""; el.grupo.value = ""; el.ubic.value = "";
+    el.ciudad.value = ""; el.distrito.value = ""; el.buscar.value = "";
     alFiltrar();
   });
   // Botón "Mostrar todos" dentro del contador (cuando se ve un solo grupo)

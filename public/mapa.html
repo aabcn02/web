@@ -18,19 +18,16 @@
     <h1>Mapa de grupos</h1>
 
     <section class="filtros" aria-label="Filtros">
-      <label>Distrito
-        <select id="f-distrito"><option value="">Todos</option></select>
+      <label class="f-buscar"><span class="oculto-vis">Buscar</span>
+        <input id="f-buscar" type="search" placeholder="Buscar grupo, colonia o calle" autocomplete="off" enterkeyhint="search">
       </label>
-      <label>Ciudad
-        <select id="f-ciudad"><option value="">Todas</option></select>
+      <label><span class="oculto-vis">Ciudad</span>
+        <select id="f-ciudad"><option value="">Ciudad: todas</option></select>
       </label>
-      <label>Buscar grupo
-        <input id="f-grupo" type="search" placeholder="Nombre del grupo" autocomplete="off">
+      <label><span class="oculto-vis">Distrito</span>
+        <select id="f-distrito"><option value="">Distrito: todos</option></select>
       </label>
-      <label>Buscar ubicación
-        <input id="f-ubic" type="search" placeholder="Palabra, dirección, grupo" autocomplete="off">
-      </label>
-      <button id="limpiar" class="btn-sec" type="button">Limpiar filtros</button>
+      <button id="limpiar" class="limpiar" type="button" hidden>Limpiar</button>
     </section>
 
     <p class="total" id="total" aria-live="polite">Cargando grupos…</p>
