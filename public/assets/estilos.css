@@ -96,6 +96,7 @@ h2 { font-size: 22px; font-weight: 800; margin: 0 0 12px; }
 
 /* ===== Pie ===== */
 .pie { background: #fff; border-top: 1px solid var(--borde); }
+.pie-lema { flex-basis: 100%; font-weight: 600; color: var(--texto); }
 .pie-in {
   max-width: 1120px; margin: 0 auto; padding: 20px 16px;
   display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; font-size: 14px; color: var(--texto-2);
