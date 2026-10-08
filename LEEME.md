@@ -11,7 +11,8 @@
 | `public/assets/pin.png` | **Opcional**: pin del mapa con el logo de AA (si no está, sale pin azul) |
 | `functions/api/grupos.js` | Lee los grupos de la base de datos |
 | `functions/api/admin/` | API del panel (grupos, noticias, páginas, usuarios, fotos, ubicar) |
-| `functions/api/noticias.js` | Noticias, publicaciones y reflexión para el sitio |
+| `functions/api/noticias.js` | Noticias y publicaciones para el sitio |
+| `functions/api/reflexion.js` + `lib/reflexion.js` | Reflexión del día desde la lista de YouTube (fecha en el título del video) |
 | `functions/fotos/` | Entrega las fotos y PDFs guardados en R2 |
 | `lib/` | Código compartido: login (correo y contraseña), mapas, limpieza de HTML |
 | `functions/api/acceso/` | Entrar y salir del panel |
@@ -33,6 +34,7 @@
 - Base de datos D1: `aabcn02-db`
 - Enlace (binding) D1 en el proyecto de Pages: nombre de variable `DB`
 - Bucket R2: `aabcn02-fotos`, enlace (binding) en Pages: `FOTOS`
+- Secreto en Pages: `YOUTUBE_KEY` (clave de YouTube Data API v3). Opcional: `YOUTUBE_LISTA` para cambiar de lista.
 - Dominio personalizado: `aabcn02.org`
 
 **No** se debe subir un `wrangler.toml` al repositorio: Cloudflare lo tomaría en lugar de la configuración del panel.
@@ -63,3 +65,8 @@ Pendientes de llenar: `[TELÉFONO DE OFICINA]` y `[DIRECCIÓN DE LA OFICINA DE �
   `python3 herramientas/clave_inicial.py correo@ejemplo.com admin` y pegar el SQL en la consola de D1.
 - Las fotos se achican en el navegador (máx. 1600 px, WebP) antes de subirse a R2.
 - Todo cambio queda anotado en la tabla `bitacora` (quién, qué y cuándo).
+
+## Reflexión del día
+
+- Sale sola de la lista de YouTube: el video cuyo título trae la fecha de hoy ("8 de Octubre", "Octubre 8"...).
+- Revisar qué fechas faltan en la lista: abrir `/api/reflexion?verificar=1`.

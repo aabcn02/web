@@ -23,7 +23,7 @@ const MENU = [
   { t: "Miembros AA", sub: [
     { t: "Literatura",    u: "/pagina?p=literatura" },
     { t: "Publicaciones", u: "/noticias?c=publicacion" },
-    { t: "Reflexión",     u: "/noticias?c=reflexion" },
+    { t: "Reflexión",     u: "/reflexion" },
   ]},
   { t: "Grupos",     u: "/mapa" },
   { t: "Directorio", u: "/directorio" },

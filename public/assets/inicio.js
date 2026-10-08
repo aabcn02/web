@@ -7,3 +7,14 @@ fetch("/api/noticias?ultimas=3")
     document.getElementById("ultimas").hidden = false;
   })
   .catch(() => {});
+
+// Reflexión del día (solo si está configurada)
+fetch("/api/reflexion")
+  .then((r) => (r.ok ? r.json() : null))
+  .then((x) => {
+    if (!x || !x.titulo) return;
+    document.getElementById("ri-fecha").textContent = `Reflexión del día · ${x.fecha}`;
+    document.getElementById("ri-titulo").textContent = x.titulo;
+    document.getElementById("reflexion-inicio").hidden = false;
+  })
+  .catch(() => {});

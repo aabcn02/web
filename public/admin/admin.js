@@ -20,7 +20,7 @@
     if (!a) return "";
     return new Date(a, m - 1, d).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
   };
-  const CATEGORIAS = { noticia: "Noticias", publicacion: "Publicaciones", reflexion: "Reflexión" };
+  const CATEGORIAS = { noticia: "Noticias", publicacion: "Publicaciones" };
 
   function aviso(msg, esError = false) {
     const a = document.getElementById("aviso");

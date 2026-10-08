@@ -4,7 +4,7 @@
   const cont = document.getElementById("noticias");
   if (!cont) return;   // en el Inicio solo se usan las funciones de abajo
   const q = new URLSearchParams(location.search);
-  const CATS = { noticia: "Noticias", publicacion: "Publicaciones", reflexion: "Reflexión" };
+  const CATS = { noticia: "Noticias", publicacion: "Publicaciones" };
 
   try {
     if (q.get("id")) return await detalle(q.get("id"));
