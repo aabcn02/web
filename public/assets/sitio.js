@@ -12,9 +12,13 @@ const SITIO = {
 const MENU = [
   { t: "Inicio", u: "/" },
   { t: "Quiénes somos", sub: [
-    { t: "¿Quiénes somos?", u: "/pagina?p=quienes-somos" },
-    { t: "Profesionales",   u: "/pagina?p=profesionales" },
-    { t: "FAQ",             u: "/pagina?p=faq" },
+    { t: "¿Qué es AA?",         u: "/pagina?p=que-es-aa" },
+    { t: "AA en México",        u: "/pagina?p=aa-en-mexico" },
+    { t: "¿Qué es la OSG?",     u: "/pagina?p=osg" },
+    { t: "Comités de servicio", u: "/pagina?p=comites" },
+    { t: "Profesionales",       u: "/pagina?p=profesionales" },
+    { t: "Prensa y medios",     u: "/pagina?p=prensa" },
+    { t: "FAQ",                 u: "/pagina?p=faq" },
   ]},
   { t: "Miembros AA", sub: [
     { t: "Literatura",    u: "/pagina?p=literatura" },
@@ -309,6 +313,7 @@ function pintarPie() {
     <div class="pie-in">
       <span>${esc(SITIO.subtitulo)}, B.C.</span>
       <span>Contacto: <a href="mailto:${esc(SITIO.correo)}">${esc(SITIO.correo)}</a> · ${esc(SITIO.telefono)}</span>
+      <span><a href="/pagina?p=aviso">Aviso de privacidad</a></span>
     </div>
   </footer>`;
 }

@@ -121,10 +121,10 @@ def main(ruta):
         })
 
     campos = list(filas[0].keys())
-    print("-- Carga inicial de grupos desde el Excel del área.")
-    print("-- OJO: borra la tabla anterior (incluye los grupos de prueba) y la vuelve a crear.")
-    print(open(__file__.replace("herramientas/excel_a_sql.py", "schema.sql"), encoding="utf-8").read()
-          .replace("CREATE TABLE IF NOT EXISTS grupos", "DROP TABLE IF EXISTS grupos;\nCREATE TABLE grupos"))
+    # Sin comentarios: la consola de D1 los rechaza
+    esquema = "\n".join(l for l in open(__file__.replace("herramientas/excel_a_sql.py", "schema.sql"), encoding="utf-8").read().splitlines()
+                       if not l.lstrip().startswith("--"))
+    print(esquema.replace("CREATE TABLE IF NOT EXISTS grupos", "DROP TABLE IF EXISTS grupos;\nCREATE TABLE grupos"))
     print(f"INSERT INTO grupos ({', '.join(campos)}) VALUES")
     print(",\n".join("(" + ", ".join(sql(f[c]) for c in campos) + ")" for f in filas) + ";")
     print(f"-- {len(filas)} grupos", file=sys.stderr)

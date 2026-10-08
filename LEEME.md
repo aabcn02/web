@@ -14,6 +14,9 @@
 | `schema.sql` | Estructura de la tabla de grupos |
 | `cargar-grupos.sql` | Los 63 grupos del Excel del área (carga inicial) |
 | `herramientas/excel_a_sql.py` | Convierte el Excel en `cargar-grupos.sql` |
+| `cargar-paginas.sql` | Páginas institucionales sacadas de Squarespace (Tijuana), adaptadas a Mexicali |
+| `herramientas/squarespace_a_sql.py` | Convierte el export de Squarespace en `cargar-paginas.sql` |
+| `functions/api/pagina.js` | Lee las páginas institucionales de la base de datos |
 
 ## Configuración en Cloudflare (una sola vez)
 
@@ -29,6 +32,11 @@
 1. Pegar `cargar-grupos.sql` en la consola de D1 (borra la tabla y la crea de nuevo).
 2. Abrir `https://aabcn02.org/api/ubicar` y recargar hasta que diga **TERMINADO**.
 3. Los que salgan sin pin o "aproximado" se corrigen a mano (en el panel, Parte 2).
+
+## Páginas institucionales
+
+Pegar `cargar-paginas.sql` en la consola de D1. Se pueden volver a pegar sin problema (reemplaza las existentes).
+Pendientes de llenar: `[TELÉFONO DE OFICINA]` y `[DIRECCIÓN DE LA OFICINA DE ÁREA]` (Contacto y Aviso de privacidad).
 
 ## Links útiles
 

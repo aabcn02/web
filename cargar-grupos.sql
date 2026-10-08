@@ -1,6 +1,3 @@
--- Carga inicial de grupos desde el Excel del área.
--- OJO: borra la tabla anterior (incluye los grupos de prueba) y la vuelve a crear.
--- Tabla de grupos: alimenta el Directorio y el Mapa.
 DROP TABLE IF EXISTS grupos;
 CREATE TABLE grupos (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,7 +23,6 @@ CREATE TABLE grupos (
   actualizado TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_grupos_activo ON grupos (activo);
-
 INSERT INTO grupos (distrito, grupo, ciudad, estado, direccion, colonia, cp, referencia, terapia, personas, idioma, horario, telefono, maps_url) VALUES
 ('1', 'Todos unidos', 'Mexicali', 'Baja California', 'Carretera Santa Isabel km 2.5', 'Villas del Real', '21309', 'A lado de una tienda "Six"', 'Tradicional', 'Mixto', 'Español', 'Diario de 3:00 a 5:00 pm.', NULL, NULL),
 ('1', '28 de Diciembre', 'Mexicali', 'Baja California', 'Paseo de San Marcos #104-10', 'San Marcos', '21050', 'Frente a la glorieta La Luna', 'Tradicional', 'Mixto', 'Español', 'Lunes a domingo de 7:00 a 8:30 pm.', NULL, NULL),
