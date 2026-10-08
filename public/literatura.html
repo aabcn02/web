@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Literatura · AA Área 64 Región 02</title>
+  <meta name="description" content="Catálogo de literatura de Alcohólicos Anónimos: libros, folletos y materiales de servicio.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700;800&display=swap">
+  <link rel="stylesheet" href="/assets/estilos.css">
+</head>
+<body>
+  <div id="encabezado"></div>
+
+  <main class="contenedor" id="contenido">
+    <h1>Literatura de AA</h1>
+    <p class="lit-intro">Libros, folletos y materiales de servicio de Alcohólicos Anónimos. Pregunta por ellos en tu grupo o en la oficina de área.</p>
+
+    <section class="filtros lit-filtros" aria-label="Buscar literatura">
+      <label class="f-buscar"><span class="oculto-vis">Buscar</span>
+        <input id="lit-buscar" type="search" placeholder="Buscar por título, código o tema" autocomplete="off" enterkeyhint="search">
+      </label>
+    </section>
+    <p class="total" id="lit-total" aria-live="polite"></p>
+
+    <div class="libros" id="lit-grid"></div>
+    <p class="vacio" id="lit-vacio" hidden>No se encontró literatura con ese término.</p>
+
+    <p class="lit-credito">Catálogo oficial de la <a href="https://aamexico.org/literatura.php" target="_blank" rel="noopener">Central Mexicana de Servicios Generales de Alcohólicos Anónimos, A.C.</a> Portadas: CMSGAA.</p>
+  </main>
+
+  <div id="pie"></div>
+
+  <script src="/assets/sitio.js"></script>
+  <script src="/assets/literatura.js"></script>
+</body>
+</html>

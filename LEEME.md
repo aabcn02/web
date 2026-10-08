@@ -66,6 +66,10 @@ Pendientes de llenar: `[TELÉFONO DE OFICINA]` y `[DIRECCIÓN DE LA OFICINA DE �
 - Las fotos se achican en el navegador (máx. 1600 px, WebP) antes de subirse a R2.
 - Todo cambio queda anotado en la tabla `bitacora` (quién, qué y cuándo).
 
+## Literatura
+
+- Catálogo en `public/assets/literatura.js` (lista `LITERATURA`: código, título, descripción). Portadas desde aamexico.org.
+
 ## Reflexión del día
 
 - Sale sola de la lista de YouTube: el video cuyo título trae la fecha de hoy ("8 de Octubre", "Octubre 8"...).

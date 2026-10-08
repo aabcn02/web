@@ -21,7 +21,7 @@ const MENU = [
     { t: "FAQ",                 u: "/pagina?p=faq" },
   ]},
   { t: "Miembros AA", sub: [
-    { t: "Literatura",    u: "/pagina?p=literatura" },
+    { t: "Literatura",    u: "/literatura" },
     { t: "Publicaciones", u: "/noticias?c=publicacion" },
     { t: "Reflexión",     u: "/reflexion" },
   ]},

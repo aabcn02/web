@@ -138,6 +138,28 @@ h2 { font-size: 22px; font-weight: 800; margin: 0 0 12px; }
 .nota-fecha { margin: 0 0 6px; color: var(--gris); font-weight: 600; font-size: 14px; }
 .nota-img { width: 100%; border-radius: 12px; margin: 4px 0 20px; display: block; }
 
+/* ===== Literatura ===== */
+.lit-intro { color: var(--texto-2); font-size: 17px; margin: -6px 0 18px; max-width: 760px; }
+.lit-filtros { grid-template-columns: 1fr; }
+.libros { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.libro { background: #fff; border: 1px solid var(--borde); border-radius: var(--radio); overflow: hidden; display: flex; flex-direction: column; }
+.libro[hidden] { display: none; }
+.libro-portada { background: #f2efe6; height: 210px; padding: 14px; display: flex; align-items: center; justify-content: center; }
+.libro-portada img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.libro-portada.sin-portada::after { content: "Portada no disponible"; color: var(--gris); font-size: 13px; }
+.libro-info { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.libro-info h2 { font-size: 16px; line-height: 1.3; margin: 0; color: var(--texto); }
+.libro-info p { font-size: 14px; line-height: 1.5; color: var(--texto-2); margin: 0; flex: 1; }
+.libro-codigo { align-self: flex-start; background: var(--azul); color: #fff; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+.lit-credito { font-size: 13px; color: var(--gris); text-align: center; margin-top: 28px; }
+@media (max-width: 480px) {
+  .libros { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .libro-portada { height: 150px; padding: 10px; }
+  .libro-info { padding: 10px 12px 12px; }
+  .libro-info h2 { font-size: 14px; }
+  .libro-info p { font-size: 13px; }
+}
+
 /* ===== Reflexión del día ===== */
 .reflexion .video { aspect-ratio: 16 / 9; background: #000; border-radius: 12px; overflow: hidden; margin: 8px 0 18px; }
 .reflexion .video iframe { width: 100%; height: 100%; border: 0; display: block; }
