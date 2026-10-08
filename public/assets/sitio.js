@@ -7,7 +7,7 @@ const SITIO = {
   subtitulo: "Área 64 Región 02",
   pie: "Alcohólicos Anónimos en Mexicali, San Luis Río Colorado, San Felipe y Valle de Mexicali. Área 64 BCN2.",
   correo: "contacto@aabcn02.org",
-  telefono: "[TELÉFONO DE OFICINA]",
+  telefono: "686 582 3360",
 };
 
 const MENU = [
@@ -321,7 +321,7 @@ function pintarPie() {
   <footer class="pie">
     <div class="pie-in">
       <span class="pie-lema">${esc(SITIO.pie)}</span>
-      <span>Contacto: <a href="mailto:${esc(SITIO.correo)}">${esc(SITIO.correo)}</a> · ${esc(SITIO.telefono)}</span>
+      <span>Contacto: <a href="mailto:${esc(SITIO.correo)}">${esc(SITIO.correo)}</a> · Tel. <a href="tel:+52${esc(SITIO.telefono.replace(/\D/g, ""))}">${esc(SITIO.telefono)}</a></span>
       <span><a href="/pagina?p=aviso">Aviso de privacidad</a></span>
     </div>
   </footer>`;
