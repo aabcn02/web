@@ -22,12 +22,12 @@ const MENU = [
   ]},
   { t: "Miembros AA", sub: [
     { t: "Literatura",    u: "/pagina?p=literatura" },
-    { t: "Publicaciones", u: "/pagina?p=publicaciones" },
-    { t: "Reflexión",     u: "/pagina?p=reflexion" },
+    { t: "Publicaciones", u: "/noticias?c=publicacion" },
+    { t: "Reflexión",     u: "/noticias?c=reflexion" },
   ]},
   { t: "Grupos",     u: "/mapa" },
   { t: "Directorio", u: "/directorio" },
-  { t: "Noticias",   u: "/pagina?p=noticias" },
+  { t: "Noticias",   u: "/noticias?c=noticia" },
   { t: "Contacto",   u: "/pagina?p=contacto" },
 ];
 

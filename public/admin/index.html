@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Panel · AA Área 64 Región 02</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="/assets/estilos.css">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body class="panel">
+  <header class="enc">
+    <div class="enc-in">
+      <a class="marca" href="/admin/">
+        <span><strong>Panel del sitio</strong><small>AA Área 64 Región 02 · Mexicali</small></span>
+      </a>
+      <div class="sesion">
+        <span id="quien" class="quien"></span>
+        <a class="salir" href="/cdn-cgi/access/logout">Salir</a>
+      </div>
+    </div>
+    <nav class="pestanas" id="pestanas" aria-label="Secciones del panel" hidden>
+      <a href="#grupos" data-sec="grupos">Grupos</a>
+      <a href="#noticias" data-sec="noticias">Noticias</a>
+      <a href="#paginas" data-sec="paginas" hidden>Páginas</a>
+      <a href="#usuarios" data-sec="usuarios" hidden>Usuarios</a>
+      <a href="/" target="_blank" rel="noopener" class="ver-sitio">Ver sitio ↗</a>
+    </nav>
+  </header>
+
+  <main class="contenedor" id="vista" aria-live="polite">
+    <p class="cargando">Cargando…</p>
+  </main>
+
+  <div id="aviso" class="aviso" role="status" aria-live="polite"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="/admin/admin.js"></script>
+</body>
+</html>

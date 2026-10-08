@@ -8,7 +8,7 @@ export async function onRequestGet({ env, request }) {
       "SELECT slug, titulo, contenido, actualizado FROM paginas WHERE slug = ?"
     ).bind(slug).first();
     if (!fila) return json({ error: "No existe." }, 404);
-    return json(fila, 200, { "cache-control": "public, max-age=300" });
+    return json(fila, 200, { "cache-control": "public, max-age=60" });
   } catch (err) {
     // La tabla todavía no existe: se trata como página sin contenido
     return json({ error: "No existe." }, 404);
