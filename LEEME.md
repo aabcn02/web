@@ -74,3 +74,13 @@ Pendientes de llenar: `[TELÉFONO DE OFICINA]` y `[DIRECCIÓN DE LA OFICINA DE �
 
 - Sale sola de la lista de YouTube: el video cuyo título trae la fecha de hoy ("8 de Octubre", "Octubre 8"...).
 - Revisar qué fechas faltan en la lista: abrir `/api/reflexion?verificar=1`.
+
+## SEO y SEO para IA
+
+- `functions/directorio.js`, `mapa.js`, `pagina.js`, `noticias.js`: entregan la página con el contenido ya escrito
+  (grupos, textos, noticias) para Google, asistentes de IA y vista previa de WhatsApp/Facebook. El JavaScript del
+  navegador vuelve a pintar todo con filtros.
+- Datos estructurados schema.org (organización, grupos con dirección y coordenadas, preguntas frecuentes, noticias).
+- `/sitemap.xml` y `/llms.txt` se generan solos desde la base de datos. `robots.txt` deja fuera el panel.
+- Imagen para compartir: `public/assets/compartir.png`.
+- Después de publicar: dar de alta `https://aabcn02.org/sitemap.xml` en Google Search Console.

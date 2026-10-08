@@ -1,0 +1,7 @@
+# Bienvenidos buscadores y asistentes de IA: este sitio existe para que la gente encuentre un grupo de AA.
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/admin/
+
+Sitemap: https://aabcn02.org/sitemap.xml
