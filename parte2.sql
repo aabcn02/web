@@ -3,10 +3,19 @@ CREATE TABLE IF NOT EXISTS usuarios (
   nombre TEXT,
   rol TEXT NOT NULL CHECK (rol IN ('admin', 'editor')),
   activo INTEGER NOT NULL DEFAULT 1,
+  clave TEXT,
+  cambiar_clave INTEGER NOT NULL DEFAULT 1,
+  intentos INTEGER NOT NULL DEFAULT 0,
+  bloqueado_hasta TEXT,
   creado TEXT NOT NULL DEFAULT (datetime('now'))
 );
-INSERT OR IGNORE INTO usuarios (email, nombre, rol) VALUES ('aabcn02@gmail.com', 'Administrador', 'admin');
-INSERT OR IGNORE INTO usuarios (email, nombre, rol) VALUES ('emgder@yahoo.com.mx', 'Editor', 'editor');
+CREATE TABLE IF NOT EXISTS sesiones (
+  token TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  expira TEXT NOT NULL,
+  creado TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_sesiones_email ON sesiones (email);
 CREATE TABLE IF NOT EXISTS noticias (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   categoria TEXT NOT NULL DEFAULT 'noticia' CHECK (categoria IN ('noticia', 'publicacion', 'reflexion')),

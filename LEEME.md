@@ -13,9 +13,11 @@
 | `functions/api/admin/` | API del panel (grupos, noticias, páginas, usuarios, fotos, ubicar) |
 | `functions/api/noticias.js` | Noticias, publicaciones y reflexión para el sitio |
 | `functions/fotos/` | Entrega las fotos y PDFs guardados en R2 |
-| `lib/` | Código compartido: login (Access), mapas, limpieza de HTML |
+| `lib/` | Código compartido: login (correo y contraseña), mapas, limpieza de HTML |
+| `functions/api/acceso/` | Entrar y salir del panel |
+| `herramientas/clave_inicial.py` | Genera una contraseña temporal por SQL (si el administrador olvida la suya) |
 | `public/admin/` | Panel de administración |
-| `parte2.sql` | Tablas de usuarios, noticias y bitácora (se pega una vez) |
+| `parte2.sql` | Estructura de usuarios, sesiones, noticias y bitácora (instalación nueva) |
 | `schema.sql` | Estructura de la tabla de grupos |
 | `cargar-grupos.sql` | Los 63 grupos del Excel del área (carga inicial) |
 | `herramientas/excel_a_sql.py` | Convierte el Excel en `cargar-grupos.sql` |
@@ -31,9 +33,6 @@
 - Base de datos D1: `aabcn02-db`
 - Enlace (binding) D1 en el proyecto de Pages: nombre de variable `DB`
 - Bucket R2: `aabcn02-fotos`, enlace (binding) en Pages: `FOTOS`
-- Variables de entorno en Pages: `ACCESS_EQUIPO` (equipo de Zero Trust) y `ACCESS_AUD` (audiencia de la app de Access)
-- Cloudflare Access: aplicación "Panel AA" que protege `aabcn02.org/admin` y `aabcn02.org/api/admin`
-  (política: cualquiera que entre con código de correo; el permiso real lo da la tabla `usuarios` desde el panel)
 - Dominio personalizado: `aabcn02.org`
 
 **No** se debe subir un `wrangler.toml` al repositorio: Cloudflare lo tomaría en lugar de la configuración del panel.
@@ -57,5 +56,10 @@ Pendientes de llenar: `[TELÉFONO DE OFICINA]` y `[DIRECCIÓN DE LA OFICINA DE �
 
 - **Administrador:** grupos, noticias, páginas y usuarios.
 - **Editor:** grupos y noticias.
+- Entrada con correo y contraseña (cifrada con PBKDF2). Sesión de 7 días en cookie segura.
+  5 intentos fallidos bloquean la cuenta 15 minutos.
+- Usuarios nuevos reciben una contraseña temporal y deben cambiarla al entrar.
+- Si el administrador olvida su contraseña y no hay otro administrador:
+  `python3 herramientas/clave_inicial.py correo@ejemplo.com admin` y pegar el SQL en la consola de D1.
 - Las fotos se achican en el navegador (máx. 1600 px, WebP) antes de subirse a R2.
 - Todo cambio queda anotado en la tabla `bitacora` (quién, qué y cuándo).

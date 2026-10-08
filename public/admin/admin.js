@@ -39,16 +39,14 @@
     let r;
     try { r = await fetch(ruta, opciones); }
     catch { throw new Error("Sin conexión. Revisa tu internet e intenta de nuevo."); }
-    // Cloudflare Access a veces responde con su página de login si la sesión venció
     const ct = r.headers.get("content-type") || "";
-    if (!ct.includes("application/json")) {
-      if (r.status === 401 || r.status === 403 || r.redirected || ct.includes("text/html")) {
-        throw new Error("Tu sesión terminó. Recarga la página para entrar de nuevo.");
-      }
-      throw new Error("Error del servidor.");
-    }
+    if (!ct.includes("application/json")) throw Object.assign(new Error("Error del servidor."), { status: r.status });
     const datos = await r.json();
-    if (!r.ok) throw new Error(datos.error || "Ocurrió un error.");
+    if (r.status === 401 && ruta !== "/api/admin/yo" && ruta !== "/api/acceso/entrar") {
+      aviso("Tu sesión terminó. Vuelve a entrar.", true);
+      setTimeout(() => location.reload(), 1500);
+    }
+    if (!r.ok) throw Object.assign(new Error(datos.error || "Ocurrió un error."), { status: r.status });
     return datos;
   }
 
@@ -224,6 +222,12 @@
 
   function ir() {
     const [sec, ...resto] = location.hash.replace(/^#/, "").split("/");
+    if (sec === "clave") {
+      document.querySelectorAll(".pestanas a[data-sec]").forEach((a) => a.classList.remove("activa"));
+      if (mapaEd) { mapaEd.remove(); mapaEd = null; }
+      verClave(false);
+      return;
+    }
     const nombre = SECCIONES[sec] && (sec === "grupos" || sec === "noticias" || YO.puede[sec]) ? sec : "grupos";
     document.querySelectorAll(".pestanas a[data-sec]").forEach((a) => a.classList.toggle("activa", a.dataset.sec === nombre));
     if (mapaEd) { mapaEd.remove(); mapaEd = null; }
@@ -620,23 +624,36 @@
             </select></label>
           <button type="submit" class="btn" id="alta">Dar acceso</button>
         </form>
-        <p class="ayuda" style="margin-top:10px">La persona entra a <strong>aabcn02.org/admin</strong> con ese correo; le llega un código para entrar. No hay contraseñas.</p>
+        <p class="ayuda" style="margin-top:10px">Se crea una <strong>contraseña temporal</strong> que le mandas a la persona (por WhatsApp, por ejemplo). La primera vez que entre a <strong>aabcn02.org/admin</strong> tendrá que cambiarla por una suya.</p>
       </section>
+      <div id="temporal"></div>
       <div class="lista" id="ul">${usuarios.map((u) => `
         <div class="fila" style="cursor:default">
           <span class="txt"><strong>${esc(u.email)}</strong><small>${esc(u.nombre || "")}</small></span>
           <span class="marcas"><span class="marca-e ${u.rol === "admin" ? "" : "gris"}">${u.rol === "admin" ? "Administrador" : "Editor"}</span>
-          ${u.email === YO.email ? `<span class="marca-e verde">Tú</span>` : `<button type="button" class="btn-mini" data-quitar="${esc(u.email)}">Quitar acceso</button>`}</span>
+          ${u.cambiar_clave && u.email !== YO.email ? `<span class="marca-e alerta">No ha entrado</span>` : ""}
+          ${u.email === YO.email ? `<span class="marca-e verde">Tú</span>` : `<button type="button" class="btn-mini" data-restablecer="${esc(u.email)}">Nueva contraseña</button>
+            <button type="button" class="btn-mini" data-quitar="${esc(u.email)}">Quitar acceso</button>`}</span>
         </div>`).join("")}</div>`;
     const form = $("#fu");
     form.addEventListener("submit", (e) => e.preventDefault());
     $("#alta").addEventListener("click", conCarga($("#alta"), async () => {
       const f = Object.fromEntries(new FormData(form));
-      await api("/api/admin/usuarios", { method: "POST", body: f });
-      aviso(`Listo: ${f.email} ya puede entrar al panel.`);
-      verUsuarios();
+      const r = await api("/api/admin/usuarios", { method: "POST", body: f });
+      await verUsuarios();
+      mostrarTemporal(r.email, r.temporal);
     }));
     $("#ul").addEventListener("click", async (e) => {
+      const rb = e.target.closest("[data-restablecer]");
+      if (rb) {
+        if (!confirm(`¿Crear una contraseña temporal nueva para ${rb.dataset.restablecer}? La anterior dejará de funcionar.`)) return;
+        try {
+          const r = await api(`/api/admin/usuarios/${encodeURIComponent(rb.dataset.restablecer)}`, { method: "PATCH" });
+          await verUsuarios();
+          mostrarTemporal(r.email, r.temporal);
+        } catch (err) { aviso(err.message, true); }
+        return;
+      }
       const b = e.target.closest("[data-quitar]");
       if (!b) return;
       if (!confirm(`¿Quitarle el acceso al panel a ${b.dataset.quitar}?`)) return;
@@ -648,16 +665,103 @@
     });
   }
 
+  function mostrarTemporal(email, temporal) {
+    const msg = `Hola, ya tienes acceso al panel del sitio de AA Área 64 Región 02.\nEntra a https://aabcn02.org/admin\nCorreo: ${email}\nContraseña temporal: ${temporal}\nAl entrar te pedirá cambiarla por una tuya.`;
+    $("#temporal").innerHTML = `
+      <section class="tarjeta-f clave-temp">
+        <h2>Contraseña temporal de ${esc(email)}</h2>
+        <p class="clave-grande">${esc(temporal)}</p>
+        <p class="ayuda">Mándasela a la persona. Solo se muestra esta vez; si se pierde, dale “Nueva contraseña”.</p>
+        <div class="botones">
+          <button type="button" class="btn" id="copiar-msg">Copiar mensaje para WhatsApp</button>
+          <a class="btn-sec" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">Abrir WhatsApp</a>
+        </div>
+      </section>`;
+    $("#copiar-msg").addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(msg); aviso("Mensaje copiado."); }
+      catch { prompt("Copia este mensaje:", msg); }
+    });
+    $("#temporal").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  /* =========================================================
+     MI CONTRASEÑA (todos)
+     ========================================================= */
+  function verClave(obligatorio = false) {
+    vista.innerHTML = `
+      ${obligatorio ? "" : `<a class="volver" href="#grupos">← Regresar</a>`}
+      <div class="caja-entrar">
+        <h1>${obligatorio ? "Crea tu contraseña" : "Mi contraseña"}</h1>
+        ${obligatorio ? `<p class="ayuda">Entraste con una contraseña temporal. Ponle una tuya para seguir (mínimo 8 caracteres). Guárdala bien.</p>` : ""}
+        <form id="fc" novalidate>
+          ${obligatorio ? "" : `<label class="c">Contraseña actual <input type="password" name="actual" autocomplete="current-password" required></label>`}
+          <label class="c">Contraseña nueva <input type="password" name="nueva" autocomplete="new-password" minlength="8" required></label>
+          <label class="c">Repite la contraseña nueva <input type="password" name="repite" autocomplete="new-password" minlength="8" required></label>
+          <label class="casilla"><input type="checkbox" id="ver-c"> Mostrar contraseñas</label>
+          <button type="submit" class="btn" id="g-clave">Guardar contraseña</button>
+        </form>
+      </div>`;
+    const form = $("#fc");
+    $("#ver-c").addEventListener("change", (e) => form.querySelectorAll("input[type=password], input[data-pw]").forEach((i) => {
+      i.dataset.pw = "1"; i.type = e.target.checked ? "text" : "password";
+    }));
+    form.addEventListener("submit", (e) => { e.preventDefault(); $("#g-clave").click(); });
+    $("#g-clave").addEventListener("click", conCarga($("#g-clave"), async () => {
+      const f = Object.fromEntries(new FormData(form));
+      if ((f.nueva || "").length < 8) { aviso("La contraseña debe tener al menos 8 caracteres.", true); return; }
+      if (f.nueva !== f.repite) { aviso("Las dos contraseñas nuevas no coinciden.", true); return; }
+      await api("/api/admin/clave", { method: "POST", body: { actual: f.actual, nueva: f.nueva } });
+      aviso("Contraseña guardada.");
+      if (obligatorio) setTimeout(() => location.reload(), 800);
+      else navegar("#grupos");
+    }));
+  }
+
+  /* =========================================================
+     ENTRAR (sin sesión)
+     ========================================================= */
+  function verEntrar() {
+    document.getElementById("sesion").hidden = true;
+    vista.innerHTML = `
+      <div class="caja-entrar">
+        <h1>Entrar al panel</h1>
+        <form id="fe" novalidate>
+          <label class="c">Correo <input type="email" name="email" autocomplete="username" required autofocus></label>
+          <label class="c">Contraseña <input type="password" name="clave" autocomplete="current-password" required></label>
+          <label class="casilla"><input type="checkbox" id="ver-e"> Mostrar contraseña</label>
+          <button type="submit" class="btn" id="entrar">Entrar</button>
+        </form>
+        <p class="ayuda">¿Olvidaste tu contraseña? Pídele al administrador del sitio que te dé una nueva.</p>
+      </div>`;
+    const form = $("#fe");
+    $("#ver-e").addEventListener("change", (e) => { form.clave.type = e.target.checked ? "text" : "password"; });
+    form.addEventListener("submit", (e) => { e.preventDefault(); $("#entrar").click(); });
+    $("#entrar").addEventListener("click", conCarga($("#entrar"), async () => {
+      const f = Object.fromEntries(new FormData(form));
+      if (!f.email || !f.clave) { aviso("Escribe tu correo y tu contraseña.", true); return; }
+      await api("/api/acceso/entrar", { method: "POST", body: f });
+      location.reload();
+    }));
+  }
+
   /* ---------- Arranque ---------- */
   (async function () {
+    document.getElementById("salir").addEventListener("click", async () => {
+      if (!confirmarSalir()) return;
+      cambiosSinGuardar = false;
+      try { await api("/api/acceso/salir", { method: "POST" }); } catch { /* igual se sale */ }
+      location.href = "/admin/";
+    });
     try {
       YO = await api("/api/admin/yo");
     } catch (e) {
-      vista.innerHTML = `<div class="error-p"><p><strong>No se pudo entrar al panel.</strong></p><p>${esc(e.message)}</p>
-        <p><a href="/cdn-cgi/access/logout">Salir e intentar con otro correo</a></p></div>`;
+      if (e.status === 401) { verEntrar(); return; }
+      vista.innerHTML = `<div class="error-p"><p><strong>No se pudo entrar al panel.</strong></p><p>${esc(e.message)}</p></div>`;
       return;
     }
     document.getElementById("quien").textContent = `${YO.email} · ${YO.rol === "admin" ? "Administrador" : "Editor"}`;
+    document.getElementById("sesion").hidden = false;
+    if (YO.cambiar_clave) { verClave(true); return; }
     document.querySelectorAll(".pestanas a[data-sec]").forEach((a) => {
       if (a.dataset.sec in YO.puede) a.hidden = !YO.puede[a.dataset.sec];
     });

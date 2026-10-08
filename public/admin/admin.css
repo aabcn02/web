@@ -5,6 +5,16 @@ body.panel { background: #eef1f6; }
 .quien { opacity: .9; overflow-wrap: anywhere; }
 .salir { color: #fff; font-weight: 700; padding: 8px 12px; border: 1px solid rgba(255,255,255,.5); border-radius: 8px; text-decoration: none; }
 .salir:hover { background: rgba(255,255,255,.14); color: #fff; }
+button.salir { background: transparent; font: inherit; font-size: 14px; cursor: pointer; }
+.sesion[hidden] { display: none; }
+
+/* Entrar / contraseña */
+.caja-entrar { max-width: 420px; margin: 24px auto; background: #fff; border: 1px solid var(--borde); border-radius: 14px; padding: clamp(20px, 4vw, 32px); }
+.caja-entrar h1 { font-size: 26px; }
+.caja-entrar form { display: flex; flex-direction: column; gap: 14px; margin: 16px 0; }
+.caja-entrar .btn { width: 100%; }
+.clave-temp { border-color: var(--azul); }
+.clave-grande { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 28px; font-weight: 700; letter-spacing: 2px; color: var(--azul); background: var(--azul-claro); border-radius: 10px; padding: 12px 16px; display: inline-block; margin: 0 0 8px; user-select: all; }
 
 .pestanas { max-width: 1120px; margin: 0 auto; padding: 0 16px; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
 .pestanas::-webkit-scrollbar { display: none; }
@@ -14,7 +24,7 @@ body.panel { background: #eef1f6; }
 }
 .pestanas a:hover { background: rgba(255,255,255,.12); color: #fff; }
 .pestanas a.activa { background: #eef1f6; color: var(--azul); }
-.pestanas a[hidden] { display: none; }
+.pestanas a[hidden], .pestanas[hidden] { display: none; }
 .pestanas .ver-sitio { margin-left: auto; font-weight: 600; opacity: .9; }
 
 .panel .contenedor { padding-top: 20px; }

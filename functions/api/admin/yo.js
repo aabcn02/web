@@ -7,6 +7,7 @@ export async function onRequestGet({ data, env }) {
     email: u.email,
     nombre: u.nombre,
     rol: u.rol,
+    cambiar_clave: !!u.cambiar_clave,
     puede: {
       grupos: true,
       noticias: true,
