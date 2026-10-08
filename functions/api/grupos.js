@@ -7,7 +7,8 @@ export async function onRequestGet({ env }) {
   }
   try {
     const { results } = await env.DB.prepare(
-      `SELECT id, distrito, grupo, ciudad, direccion, terapia, personas, horario, lat, lng, maps_url
+      `SELECT id, distrito, grupo, ciudad, direccion, colonia, referencia, terapia, personas, idioma,
+              horario, telefono, lat, lng, maps_url
          FROM grupos
         WHERE activo = 1
         ORDER BY CAST(distrito AS INTEGER), distrito, grupo COLLATE NOCASE`

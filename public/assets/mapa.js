@@ -2,8 +2,8 @@
   const total = document.getElementById("total");
   const nota = document.getElementById("nota-mapa");
 
-  // Mapa centrado en Mexicali
-  const mapa = L.map("mapa", { scrollWheelZoom: false }).setView([32.6245, -115.4523], 12);
+  // Arranca mostrando Mexicali; luego se acomoda a los pines que haya
+  const mapa = L.map("mapa", { scrollWheelZoom: false }).setView([32.6245, -115.4523], 11);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -11,7 +11,16 @@
   mapa.on("focus", () => mapa.scrollWheelZoom.enable());
   mapa.on("blur", () => mapa.scrollWheelZoom.disable());
 
-  const icono = L.divIcon({ className: "", html: '<div class="pin"></div>', iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -28] });
+  // Pin con el logo de AA si existe /assets/pin.png; si no, el pin azul
+  const pinImg = new Image();
+  const iconoAzul = L.divIcon({ className: "", html: '<div class="pin"></div>', iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -28] });
+  let icono = iconoAzul;
+  await new Promise((listo) => {
+    pinImg.onload = () => { icono = L.icon({ iconUrl: "/assets/pin.png", iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -38] }); listo(); };
+    pinImg.onerror = listo;
+    pinImg.src = "/assets/pin.png";
+  });
+
   const capa = L.layerGroup().addTo(mapa);
   const marcadores = new Map();
 
@@ -19,44 +28,45 @@
     const llegar = urlComoLlegar(g);
     return `<div class="globo">
       <strong>${esc(g.grupo)}</strong>
-      <span>Distrito ${esc(g.distrito)} · ${esc(g.ciudad)}</span>
-      ${g.direccion ? `<span>${esc(g.direccion)}</span>` : ""}
-      ${g.horario ? `<span>${esc(g.horario)}</span>` : ""}
-      <span>${esc([g.terapia, g.personas].filter(Boolean).join(" · "))}</span>
-      ${llegar ? `<a href="${esc(llegar)}" target="_blank" rel="noopener">Cómo llegar</a>` : ""}
+      <span>Distrito ${esc(g.distrito)} · ${esc(g.ciudad)}${g.idioma && normal(g.idioma) !== "espanol" ? ` · ${esc(g.idioma)}` : ""}</span>
+      ${domicilio(g) ? `<span>${esc(domicilio(g))}</span>` : ""}
+      ${g.referencia ? `<span class="ref">${esc(g.referencia)}</span>` : ""}
+      ${g.horario ? `<span><b>Horario:</b> ${esc(g.horario)}</span>` : ""}
+      ${g.telefono ? `<span><b>Tel:</b> ${telefonosHTML(g)}</span>` : ""}
+      ${llegar ? `<a class="llegar" href="${esc(llegar)}" target="_blank" rel="noopener">Cómo llegar</a>` : ""}
+      ${botonesGrupo(g)}
     </div>`;
   }
 
-  let primeraVez = true;
-  function pintar(grupos) {
+  function pintar(grupos, info) {
     capa.clearLayers();
     marcadores.clear();
     const conCoords = grupos.filter(tieneCoords);
     conCoords.forEach((g) => {
-      const m = L.marker([g.lat, g.lng], { icon: icono, title: g.grupo }).bindPopup(globo(g));
+      const m = L.marker([g.lat, g.lng], { icon: icono, title: g.grupo }).bindPopup(globo(g), { maxWidth: 290 });
       m.addTo(capa);
       marcadores.set(String(g.id), m);
     });
-    total.innerHTML = `Total de grupos: <strong>${grupos.length}</strong>`;
+    total.innerHTML = textoTotal(grupos, info);
     const sinMapa = grupos.length - conCoords.length;
-    nota.textContent = sinMapa > 0 ? `${sinMapa} grupo(s) todavía no tienen ubicación en el mapa; búscalos en el Directorio.` : "";
+    nota.innerHTML = sinMapa > 0
+      ? `${sinMapa} grupo(s) todavía no tienen ubicación en el mapa; búscalos en el <a href="/directorio">Directorio</a>.`
+      : "";
 
-    if (conCoords.length) {
-      const limites = L.latLngBounds(conCoords.map((g) => [g.lat, g.lng]));
-      mapa.fitBounds(limites, { padding: [40, 40], maxZoom: 15 });
-    }
-
-    // Si llegaron desde el Directorio ("Ver en mapa"), abre ese grupo
-    if (primeraVez) {
-      primeraVez = false;
-      const id = (location.hash.match(/^#g-(\d+)$/) || [])[1];
-      const m = id && marcadores.get(id);
-      if (m) { mapa.setView(m.getLatLng(), 16); m.openPopup(); }
+    if (conCoords.length === 1) {
+      const m = marcadores.get(String(conCoords[0].id));
+      mapa.setView(m.getLatLng(), 16);
+      m.openPopup();
+    } else if (conCoords.length) {
+      mapa.fitBounds(L.latLngBounds(conCoords.map((g) => [g.lat, g.lng])), { padding: [40, 40], maxZoom: 15 });
     }
   }
 
   try {
     const grupos = await cargarGrupos();
+    // Links viejos tipo /mapa#g-12 → /mapa?id=12
+    const viejo = (location.hash.match(/^#g-(\d+)$/) || [])[1];
+    if (viejo) history.replaceState(null, "", `${location.pathname}?id=${viejo}`);
     prepararFiltros(grupos, { ciudad: "f-ciudad", distrito: "f-distrito", grupo: "f-grupo", ubic: "f-ubic", limpiar: "limpiar" }, pintar);
   } catch (e) {
     total.innerHTML = `<span class="error" style="display:block">${esc(e.message)} Intenta de nuevo en un momento.</span>`;

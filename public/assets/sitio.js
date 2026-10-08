@@ -58,6 +58,89 @@ function urlComoLlegar(g) {
   return "";
 }
 
+function domicilio(g) {
+  return [g.direccion, g.colonia ? `Col. ${g.colonia}` : ""].filter(Boolean).join(", ");
+}
+
+// "686 311 45 88 / 653 136 20 66" -> links para llamar desde el celular
+function telefonosHTML(g) {
+  return String(g.telefono || "").split("/").map((t) => t.trim()).filter(Boolean).map((t) => {
+    const num = t.replace(/[^\d+]/g, "");
+    return num.length >= 7 ? `<a href="tel:${esc(num)}">${esc(t)}</a>` : esc(t);
+  }).join("<br>");
+}
+
+// Link directo a un grupo: en el mapa si tiene pin, si no en el directorio
+function enlaceGrupo(g) {
+  return `${location.origin}/${tieneCoords(g) ? "mapa" : "directorio"}?id=${g.id}`;
+}
+
+function textoFicha(g) {
+  const lineas = [
+    `${g.grupo} — Distrito ${g.distrito}, ${g.ciudad}`,
+    domicilio(g) && `Dirección: ${domicilio(g)}`,
+    g.referencia && `Referencia: ${g.referencia}`,
+    g.horario && `Horario: ${g.horario}`,
+    g.telefono && `Teléfono: ${g.telefono}`,
+    urlComoLlegar(g) && `Cómo llegar: ${urlComoLlegar(g)}`,
+    `Ficha: ${enlaceGrupo(g)}`,
+  ];
+  return lineas.filter(Boolean).join("\n");
+}
+
+function aviso(msg) {
+  let t = document.getElementById("aviso");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "aviso"; t.className = "aviso"; t.setAttribute("role", "status"); t.setAttribute("aria-live", "polite");
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.add("ver");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("ver"), 1800);
+}
+
+async function copiar(txt) {
+  try { await navigator.clipboard.writeText(txt); return true; }
+  catch {
+    const ta = document.createElement("textarea");
+    ta.value = txt; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand("copy"); ta.remove(); return ok;
+  }
+}
+
+// En el celular abre el menú de compartir (WhatsApp, etc.); en compu copia la ficha
+async function compartirGrupo(g) {
+  const texto = textoFicha(g);
+  if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+    try { await navigator.share({ title: g.grupo, text: texto }); return; }
+    catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  aviso(await copiar(texto) ? "Ficha copiada. Ya la puedes pegar en WhatsApp." : "No se pudo copiar.");
+}
+
+// Botones [data-compartir] / [data-copiar] en cualquier parte (tarjetas y globos del mapa)
+function activarBotonesGrupo(grupos) {
+  const porId = new Map(grupos.map((g) => [String(g.id), g]));
+  document.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-compartir], [data-copiar]");
+    if (!b) return;
+    const g = porId.get(b.dataset.compartir || b.dataset.copiar);
+    if (!g) return;
+    if (b.dataset.compartir) compartirGrupo(g);
+    else aviso(await copiar(enlaceGrupo(g)) ? "Enlace copiado." : "No se pudo copiar.");
+  });
+}
+
+function botonesGrupo(g) {
+  return `<div class="acciones-grupo">
+    <button type="button" class="btn-mini" data-compartir="${esc(g.id)}">Compartir</button>
+    <button type="button" class="btn-mini" data-copiar="${esc(g.id)}">Copiar enlace</button>
+  </div>`;
+}
+
 async function cargarGrupos() {
   const r = await fetch("/api/grupos", { headers: { accept: "application/json" } });
   if (!r.ok) throw new Error("No se pudieron cargar los grupos.");
@@ -90,26 +173,59 @@ function prepararFiltros(grupos, ids, alCambiar) {
   llenarSelect(el.ciudad, unicos("ciudad").sort((a, b) => a.localeCompare(b, "es")));
   llenarSelect(el.distrito, unicos("distrito").sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0) || a.localeCompare(b, "es")));
 
+  // ?id=12 en la dirección: muestra solo ese grupo (links compartidos)
+  let soloId = new URLSearchParams(location.search).get("id");
+  if (soloId && !grupos.some((g) => String(g.id) === soloId)) soloId = null;
+  const quitarSolo = () => {
+    if (!soloId) return;
+    soloId = null;
+    history.replaceState(null, "", location.pathname);
+  };
+
   const aplicar = () => {
+    if (soloId) {
+      alCambiar(grupos.filter((g) => String(g.id) === soloId), { solo: true });
+      return;
+    }
     const c = el.ciudad.value, d = el.distrito.value;
     const qg = normal(el.grupo.value), qu = normal(el.ubic.value);
     const lista = grupos.filter((g) =>
       (!c || String(g.ciudad).trim() === c) &&
       (!d || String(g.distrito).trim() === d) &&
       (!qg || normal(g.grupo).includes(qg)) &&
-      (!qu || normal(`${g.direccion} ${g.ciudad} ${g.grupo} ${g.horario}`).includes(qu))
+      (!qu || normal(`${g.direccion} ${g.colonia} ${g.referencia} ${g.ciudad} ${g.grupo} ${g.horario} ${g.idioma}`).includes(qu))
     );
-    alCambiar(lista);
+    const activos = [
+      d && `Distrito ${d}`, c,
+      el.grupo.value.trim() && `Grupo: “${el.grupo.value.trim()}”`,
+      el.ubic.value.trim() && `Ubicación: “${el.ubic.value.trim()}”`,
+    ].filter(Boolean);
+    alCambiar(lista, { activos });
   };
-  el.ciudad.addEventListener("change", aplicar);
-  el.distrito.addEventListener("change", aplicar);
-  el.grupo.addEventListener("input", aplicar);
-  el.ubic.addEventListener("input", aplicar);
+  const alFiltrar = () => { quitarSolo(); aplicar(); };
+  el.ciudad.addEventListener("change", alFiltrar);
+  el.distrito.addEventListener("change", alFiltrar);
+  el.grupo.addEventListener("input", alFiltrar);
+  el.ubic.addEventListener("input", alFiltrar);
   el.limpiar.addEventListener("click", () => {
     el.ciudad.value = ""; el.distrito.value = ""; el.grupo.value = ""; el.ubic.value = "";
-    aplicar();
+    alFiltrar();
   });
+  // Botón "Mostrar todos" dentro del contador (cuando se ve un solo grupo)
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-mostrar-todos]")) alFiltrar();
+  });
+  activarBotonesGrupo(grupos);
   aplicar();
+}
+
+// Texto del contador: "Total de grupos: 12 · Distrito 3 · Mexicali"
+function textoTotal(lista, info) {
+  if (info.solo) {
+    return `Mostrando un grupo <button type="button" class="btn-mini" data-mostrar-todos>Mostrar todos</button>`;
+  }
+  const chips = (info.activos || []).map((a) => `<span class="chip">${esc(a)}</span>`).join("");
+  return `Total de grupos: <strong>${lista.length}</strong>${chips}`;
 }
 
 /* ===== Encabezado, menú y pie ===== */
