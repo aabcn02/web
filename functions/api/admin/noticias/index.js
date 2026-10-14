@@ -1,7 +1,7 @@
 // GET  /api/admin/noticias  → todas (también borradores)
 // POST /api/admin/noticias  → nueva
 import { json, error, leerJSON } from "../../../../lib/http.js";
-import { datosNoticia } from "../../../../lib/noticias.js";
+import { datosNoticia, ahoraMexicali } from "../../../../lib/noticias.js";
 import { anotar } from "../../../../lib/bitacora.js";
 
 export async function onRequestGet({ env }) {
@@ -17,7 +17,7 @@ export async function onRequestGet({ env }) {
 export async function onRequestPost({ request, env, data }) {
   const r = await datosNoticia(env, await leerJSON(request), data.usuario.email);
   if (r.error) return error(r.error);
-  const n = r.datos;
+  const n = { ...r.datos, ...ahoraMexicali() };
   const res = await env.DB.prepare(
     `INSERT INTO noticias (categoria, titulo, fecha, hora, resumen, contenido, imagen, publicado, autor,
                            de_tipo, de_distrito, de_grupo_id, de_nombre)

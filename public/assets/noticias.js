@@ -15,30 +15,37 @@
       <h1>Noticias</h1>
       <section class="filtros filtros-noticias" aria-label="Filtro">
         <label><span class="oculto-vis">Quién publica</span>
-          <select id="f-de">${opcionesDe(grupos, "Ver: todas las noticias")}</select>
+          <select id="f-de">${opcionesDe(grupos, "De: todas")}</select>
+        </label>
+        <label><span class="oculto-vis">Mes</span>
+          <select id="f-mes"><option value="">Mes: todos</option>${opcionesMes(lista)}</select>
         </label>
         <button id="limpiar" class="limpiar" type="button" hidden>Limpiar</button>
       </section>
       <p class="total" id="total"></p>
       <div id="lista-n"></div>`;
     const sel = document.getElementById("f-de");
+    const selMes = document.getElementById("f-mes");
     const limpiar = document.getElementById("limpiar");
     if (q.get("de") && [...sel.options].some((o) => o.value === q.get("de"))) sel.value = q.get("de");
+    if (q.get("mes") && [...selMes.options].some((o) => o.value === q.get("mes"))) selMes.value = q.get("mes");
     const pintar = () => {
-      const v = sel.value;
-      const vis = lista.filter((n) => coincideDe(n, v));
-      limpiar.hidden = !v;
+      const v = sel.value, mes = selMes.value;
+      const vis = lista.filter((n) => coincideDe(n, v) && (!mes || String(n.fecha).startsWith(mes)));
+      limpiar.hidden = !v && !mes;
       document.getElementById("total").textContent = vis.length === 1 ? "1 noticia" : `${vis.length} noticias`;
       document.getElementById("lista-n").innerHTML = vis.length
         ? `<div class="noticias">${vis.map(tarjetaNoticia).join("")}</div>`
-        : `<p class="vacio">${v ? "No hay noticias de esta opción todavía." : "Todavía no hay noticias."}</p>`;
+        : `<p class="vacio">${v || mes ? "No hay noticias con este filtro." : "Todavía no hay noticias."}</p>`;
       const u = new URL(location.href);
       if (v) u.searchParams.set("de", v); else u.searchParams.delete("de");
+      if (mes) u.searchParams.set("mes", mes); else u.searchParams.delete("mes");
       u.searchParams.delete("c");
       history.replaceState(null, "", u);
     };
     sel.addEventListener("change", pintar);
-    limpiar.addEventListener("click", () => { sel.value = ""; pintar(); });
+    selMes.addEventListener("change", pintar);
+    limpiar.addEventListener("click", () => { sel.value = ""; selMes.value = ""; pintar(); });
     pintar();
   } catch {
     cont.innerHTML = `<p class="error">No se pudieron cargar las noticias. Intenta de nuevo en un momento.</p>`;
@@ -131,6 +138,15 @@ function opcionesDe(grupos, primera) {
     ds.map((d) => `<optgroup label="Grupos del distrito ${esc(d)}">${porDistrito[d]
       .sort((a, b) => a.grupo.localeCompare(b.grupo, "es"))
       .map((g) => op(`grupo:${g.id}`, g.grupo)).join("")}</optgroup>`).join("");
+}
+
+// "2026-10" → "Octubre 2026", solo los meses que tienen noticias
+function opcionesMes(lista) {
+  const meses = [...new Set(lista.map((n) => String(n.fecha || "").slice(0, 7)).filter((m) => /^\d{4}-\d{2}$/.test(m)))].sort().reverse();
+  return meses.map((m) => {
+    const t = new Date(Number(m.slice(0, 4)), Number(m.slice(5)) - 1, 1).toLocaleDateString("es-MX", { month: "long", year: "numeric" }).replace(" de ", " ");
+    return `<option value="${m}">${esc(t.charAt(0).toUpperCase() + t.slice(1))}</option>`;
+  }).join("");
 }
 
 function cuandoNoticia(n) {

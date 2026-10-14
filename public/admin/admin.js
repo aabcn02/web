@@ -43,6 +43,14 @@
     : n.de_tipo === "comite" ? `${n.de_nombre} · Área 64` : "Área 64 Región 02";
   const valorDe = (n) => n.de_tipo === "grupo" ? `grupo:${n.de_grupo_id}` : n.de_tipo === "distrito" ? `distrito:${n.de_distrito}`
     : n.de_tipo === "comite" ? `comite:${Object.keys(COMITES).find((k) => COMITES[k] === n.de_nombre) || ""}` : "area";
+  // "2026-10" → "Octubre 2026", solo los meses que tienen noticias
+  function opcionesMes(noticias) {
+    const meses = [...new Set(noticias.map((n) => String(n.fecha || "").slice(0, 7)).filter((m) => /^\d{4}-\d{2}$/.test(m)))].sort().reverse();
+    return meses.map((m) => {
+      const t = new Date(Number(m.slice(0, 4)), Number(m.slice(5)) - 1, 1).toLocaleDateString("es-MX", { month: "long", year: "numeric" }).replace(" de ", " ");
+      return `<option value="${m}">${esc(t.charAt(0).toUpperCase() + t.slice(1))}</option>`;
+    }).join("");
+  }
   function opcionesDe(grupos) {
     const por = {};
     for (const g of grupos) (por[g.distrito] ||= []).push(g);
@@ -471,15 +479,33 @@
   async function verNoticias(param) {
     if (param) return editarNoticia(param);
     vista.innerHTML = `<p class="cargando">Cargando noticias…</p>`;
-    const noticias = await api("/api/admin/noticias");
+    const [noticias, grupos] = await Promise.all([
+      api("/api/admin/noticias"),
+      fetch("/api/grupos").then((r) => (r.ok ? r.json() : [])).catch(() => []),
+    ]);
     vista.innerHTML = `
       <div class="barra">
         <h1>Noticias</h1>
         <a class="btn" href="#noticias/nueva">+ Nueva</a>
       </div>
+      <div class="barra filtros-n">
+        <input type="search" id="nq" placeholder="Buscar por título…" autocomplete="off">
+        <select id="nd" aria-label="De qué es"><option value="">Todas</option>${opcionesDe(grupos)}</select>
+        <select id="nm" aria-label="Mes"><option value="">Todos los meses</option>${opcionesMes(noticias)}</select>
+      </div>
       <div class="lista" id="nl"></div>`;
+    const coincide = (n, v) => {
+      if (!v) return true;
+      if (v === "area") return !n.de_tipo || n.de_tipo === "area" || n.de_tipo === "comite";
+      const [t, x] = v.split(":");
+      if (t === "comite") return n.de_tipo === "comite" && n.de_nombre === COMITES[x];
+      if (t === "distrito") return String(n.de_distrito) === x;
+      if (t === "grupo") return String(n.de_grupo_id) === x;
+      return true;
+    };
     const pintar = () => {
-      const lista = noticias;
+      const q = normal($("#nq").value), v = $("#nd").value, mes = $("#nm").value;
+      const lista = noticias.filter((n) => coincide(n, v) && (!mes || String(n.fecha).startsWith(mes)) && (!q || normal(n.titulo).includes(q)));
       $("#nl").innerHTML = lista.length ? lista.map((n) => `
         <button type="button" class="fila" data-id="${n.id}">
           ${n.imagen ? `<img class="mini" src="${esc(n.imagen)}" alt="">` : `<span class="mini"></span>`}
@@ -488,6 +514,9 @@
           <span class="marcas">${n.publicado ? `<span class="marca-e verde">Publicada</span>` : `<span class="marca-e gris">Borrador</span>`}</span>
         </button>`).join("") : `<p class="vacio-p">Todavía no hay nada aquí. Dale “+ Nueva” para publicar la primera.</p>`;
     };
+    $("#nq").addEventListener("input", pintar);
+    $("#nd").addEventListener("change", pintar);
+    $("#nm").addEventListener("change", pintar);
     $("#nl").addEventListener("click", (e) => { const f = e.target.closest(".fila"); if (f) navegar(`#noticias/${f.dataset.id}`); });
     pintar();
   }
@@ -495,7 +524,7 @@
   async function editarNoticia(param) {
     const nueva = param === "nueva";
     vista.innerHTML = `<p class="cargando">Cargando…</p>`;
-    let n = { de_tipo: "area", titulo: "", fecha: hoy(), hora: ahora(), contenido: "", imagen: "", publicado: 1 };
+    let n = { de_tipo: "area", titulo: "", contenido: "", imagen: "", publicado: 1 };
     const [todas, grupos] = await Promise.all([
       nueva ? Promise.resolve([]) : api("/api/admin/noticias"),
       fetch("/api/grupos").then((r) => (r.ok ? r.json() : [])).catch(() => []),
@@ -506,7 +535,7 @@
     }
     vista.innerHTML = `
       <a class="volver" href="#noticias">← Noticias</a>
-      <div class="barra"><h1>${nueva ? "Nueva publicación" : "Editar"}</h1></div>
+      <div class="barra"><h1>${nueva ? "Nueva noticia" : "Editar"}</h1></div>
       <form id="fn" novalidate>
         <section class="tarjeta-f">
           <div class="campos">
@@ -514,8 +543,9 @@
               <select name="de">${opcionesDe(grupos)}</select></label>
             <p class="ayuda ancho">Sale como publicada por <strong>${esc(nueva || !n.autor ? (YO.nombre || "") : (n.autor_nombre || ""))}</strong>${
               (nueva || !n.autor) && !YO.nombre ? ` <a href="#clave">— Ponte un nombre o apodo en “Mi cuenta”</a>` : ""}</p>
-            <label class="c">Fecha <input type="date" name="fecha" value="${esc(n.fecha)}" required></label>
-            <label class="c">Hora <input type="time" name="hora" value="${esc(n.hora || "")}"></label>
+            <p class="ayuda ancho">${nueva || !n.publicado
+              ? "La fecha y la hora se ponen solas en el momento en que se publica."
+              : `Publicada el ${esc(fechaBonita(n.fecha))}${n.hora ? ` a las ${esc(horaBonita(n.hora))}` : ""} (no se puede cambiar).`}</p>
             <label class="c ancho">Título * <input name="titulo" value="${esc(n.titulo)}" maxlength="200" required></label>
           </div>
         </section>
@@ -571,11 +601,10 @@
 
     $("#guardar").addEventListener("click", conCarga($("#guardar"), async () => {
       const datos = {
-        de: form.de.value, fecha: form.fecha.value, hora: form.hora.value, titulo: form.titulo.value,
+        de: form.de.value, titulo: form.titulo.value,
         contenido: editor.html(), imagen, publicado: form.publicado.checked,
       };
       if (!datos.titulo.trim()) { aviso("Falta el título.", true); return; }
-      if (!datos.fecha) { aviso("Falta la fecha.", true); return; }
       const r = nueva
         ? await api("/api/admin/noticias", { method: "POST", body: datos })
         : await api(`/api/admin/noticias/${n.id}`, { method: "PUT", body: datos });

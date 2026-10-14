@@ -140,8 +140,8 @@ h2 { font-size: 22px; font-weight: 800; margin: 0 0 12px; }
 .volver-pub { display: inline-flex; min-height: 40px; align-items: center; font-weight: 700; text-decoration: none; margin-bottom: 8px; }
 .nota-fecha { margin: 0 0 6px; color: var(--gris); font-weight: 600; font-size: 14px; }
 .nota-de { margin: -4px 0 16px; color: var(--texto-2); font-size: 15px; }
-.filtros.filtros-noticias { grid-template-columns: minmax(0, 420px) auto; justify-content: start; margin-bottom: 4px; }
-@media (max-width: 700px) { .filtros.filtros-noticias { grid-template-columns: 1fr auto; } }
+.filtros.filtros-noticias { grid-template-columns: minmax(0, 360px) minmax(0, 220px) auto; justify-content: start; margin-bottom: 4px; }
+@media (max-width: 700px) { .filtros.filtros-noticias { grid-template-columns: 1fr 1fr; } .filtros-noticias .limpiar { grid-column: 1 / -1; justify-self: start; } }
 .nota-img { width: 100%; border-radius: 12px; margin: 4px 0 20px; display: block; }
 
 /* ===== Literatura ===== */
