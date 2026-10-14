@@ -11,7 +11,8 @@
 | `public/assets/pin.png` | **Opcional**: pin del mapa con el logo de AA (si no está, sale pin azul) |
 | `functions/api/grupos.js` | Lee los grupos de la base de datos |
 | `functions/api/admin/` | API del panel (grupos, noticias, páginas, usuarios, fotos, ubicar) |
-| `functions/api/noticias.js` | Noticias y publicaciones para el sitio |
+| `functions/api/noticias.js` | Noticias para el sitio (cada una dice quién publica: Área, distrito o grupo) |
+| `actualizar-noticias.sql` | Agrega hora y "quién publica" a las noticias (ya aplicado en producción) |
 | `functions/api/reflexion.js` + `lib/reflexion.js` | Reflexión del día desde la lista de YouTube (fecha en el título del video) |
 | `functions/fotos/` | Entrega las fotos y PDFs guardados en R2 |
 | `lib/` | Código compartido: login (correo y contraseña), mapas, limpieza de HTML |

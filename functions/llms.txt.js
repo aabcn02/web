@@ -31,7 +31,7 @@ export async function onRequestGet({ env }) {
     `- [AA en México](${URL_SITIO}/pagina?p=aa-en-mexico)`,
     `- [Literatura de AA](${URL_SITIO}/literatura)`,
     `- [Reflexión del día](${URL_SITIO}/reflexion)`,
-    `- [Noticias](${URL_SITIO}/noticias?c=noticia)`,
+    `- [Noticias](${URL_SITIO}/noticias)`,
     `- [Contacto](${URL_SITIO}/pagina?p=contacto)`,
     "",
     `## Directorio de grupos (${grupos.length} grupos)`,

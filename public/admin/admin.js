@@ -20,7 +20,40 @@
     if (!a) return "";
     return new Date(a, m - 1, d).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
   };
-  const CATEGORIAS = { noticia: "Noticias", publicacion: "Publicaciones" };
+  const ahora = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+  const horaBonita = (h) => {
+    if (!/^\d{2}:\d{2}$/.test(h || "")) return "";
+    const [x, m] = h.split(":").map(Number);
+    return `${((x + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${x < 12 ? "a. m." : "p. m."}`;
+  };
+  // De qué es una noticia: Área (o uno de sus comités), distrito o grupo
+  const COMITES = {
+    agenda: "Comité de Agenda",
+    archivos: "Comité de Archivos Históricos",
+    ccp: "Comité de Cooperación con la Comunidad Profesional",
+    finanzas: "Comité de Finanzas",
+    ip: "Comité de Información Pública",
+    correccionales: "Comité de Instituciones Correccionales",
+    literatura: "Comité de Literatura",
+    plenitud: "Comité de Plenitud",
+    tratamiento: "Comité de Tratamiento y Accesibilidades",
+  };
+  const textoDe = (n) => n.de_tipo === "grupo" ? `Grupo ${n.de_nombre || ""}${n.de_distrito ? ` · Distrito ${n.de_distrito}` : ""}`
+    : n.de_tipo === "distrito" ? `Distrito ${n.de_distrito}`
+    : n.de_tipo === "comite" ? `${n.de_nombre} · Área 64` : "Área 64 Región 02";
+  const valorDe = (n) => n.de_tipo === "grupo" ? `grupo:${n.de_grupo_id}` : n.de_tipo === "distrito" ? `distrito:${n.de_distrito}`
+    : n.de_tipo === "comite" ? `comite:${Object.keys(COMITES).find((k) => COMITES[k] === n.de_nombre) || ""}` : "area";
+  function opcionesDe(grupos) {
+    const por = {};
+    for (const g of grupos) (por[g.distrito] ||= []).push(g);
+    const ds = Object.keys(por).sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0) || a.localeCompare(b));
+    const op = (v, t) => `<option value="${esc(v)}">${esc(t)}</option>`;
+    return `<optgroup label="Área 64 Región 02">${op("area", "Área 64 Región 02 (general)")}${
+        Object.entries(COMITES).map(([k, t]) => op(`comite:${k}`, t)).join("")}</optgroup>` +
+      `<optgroup label="Distritos">${ds.map((d) => op(`distrito:${d}`, `Distrito ${d}`)).join("")}</optgroup>` +
+      ds.map((d) => `<optgroup label="Grupos del distrito ${esc(d)}">${por[d]
+        .sort((a, b) => a.grupo.localeCompare(b.grupo, "es")).map((g) => op(`grupo:${g.id}`, g.grupo)).join("")}</optgroup>`).join("");
+  }
 
   function aviso(msg, esError = false) {
     const a = document.getElementById("aviso");
@@ -435,8 +468,6 @@
   /* =========================================================
      NOTICIAS
      ========================================================= */
-  let filtroNoticias = "";
-
   async function verNoticias(param) {
     if (param) return editarNoticia(param);
     vista.innerHTML = `<p class="cargando">Cargando noticias…</p>`;
@@ -446,26 +477,17 @@
         <h1>Noticias</h1>
         <a class="btn" href="#noticias/nueva">+ Nueva</a>
       </div>
-      <div class="barra">
-        <select id="nc" aria-label="Categoría">
-          <option value="">Todas las categorías</option>
-          ${Object.entries(CATEGORIAS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}
-        </select>
-      </div>
       <div class="lista" id="nl"></div>`;
-    $("#nc").value = filtroNoticias;
     const pintar = () => {
-      filtroNoticias = $("#nc").value;
-      const lista = noticias.filter((n) => !filtroNoticias || n.categoria === filtroNoticias);
+      const lista = noticias;
       $("#nl").innerHTML = lista.length ? lista.map((n) => `
         <button type="button" class="fila" data-id="${n.id}">
           ${n.imagen ? `<img class="mini" src="${esc(n.imagen)}" alt="">` : `<span class="mini"></span>`}
           <span class="txt"><strong>${esc(n.titulo)}</strong>
-            <small>${esc(CATEGORIAS[n.categoria])} · ${esc(fechaBonita(n.fecha))}</small></span>
+            <small>${esc(textoDe(n))}${n.autor_nombre ? ` · por ${esc(n.autor_nombre)}` : ""} · ${esc(fechaBonita(n.fecha))}${n.hora ? ` · ${esc(horaBonita(n.hora))}` : ""}</small></span>
           <span class="marcas">${n.publicado ? `<span class="marca-e verde">Publicada</span>` : `<span class="marca-e gris">Borrador</span>`}</span>
         </button>`).join("") : `<p class="vacio-p">Todavía no hay nada aquí. Dale “+ Nueva” para publicar la primera.</p>`;
     };
-    $("#nc").addEventListener("change", pintar);
     $("#nl").addEventListener("click", (e) => { const f = e.target.closest(".fila"); if (f) navegar(`#noticias/${f.dataset.id}`); });
     pintar();
   }
@@ -473,9 +495,13 @@
   async function editarNoticia(param) {
     const nueva = param === "nueva";
     vista.innerHTML = `<p class="cargando">Cargando…</p>`;
-    let n = { categoria: filtroNoticias || "noticia", titulo: "", fecha: hoy(), contenido: "", imagen: "", publicado: 1 };
+    let n = { de_tipo: "area", titulo: "", fecha: hoy(), hora: ahora(), contenido: "", imagen: "", publicado: 1 };
+    const [todas, grupos] = await Promise.all([
+      nueva ? Promise.resolve([]) : api("/api/admin/noticias"),
+      fetch("/api/grupos").then((r) => (r.ok ? r.json() : [])).catch(() => []),
+    ]);
     if (!nueva) {
-      n = (await api("/api/admin/noticias")).find((x) => String(x.id) === param);
+      n = todas.find((x) => String(x.id) === param);
       if (!n) { vista.innerHTML = `<p class="error-p">Esa noticia no existe. <a href="#noticias">Volver</a></p>`; return; }
     }
     vista.innerHTML = `
@@ -484,9 +510,12 @@
       <form id="fn" novalidate>
         <section class="tarjeta-f">
           <div class="campos">
-            <label class="c">Sección
-              <select name="categoria">${Object.entries(CATEGORIAS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select></label>
+            <label class="c ancho">¿De qué es? *
+              <select name="de">${opcionesDe(grupos)}</select></label>
+            <p class="ayuda ancho">Sale como publicada por <strong>${esc(nueva || !n.autor ? (YO.nombre || "") : (n.autor_nombre || ""))}</strong>${
+              (nueva || !n.autor) && !YO.nombre ? ` <a href="#clave">— Ponte un nombre o apodo en “Mi cuenta”</a>` : ""}</p>
             <label class="c">Fecha <input type="date" name="fecha" value="${esc(n.fecha)}" required></label>
+            <label class="c">Hora <input type="time" name="hora" value="${esc(n.hora || "")}"></label>
             <label class="c ancho">Título * <input name="titulo" value="${esc(n.titulo)}" maxlength="200" required></label>
           </div>
         </section>
@@ -517,7 +546,9 @@
         </div>
       </form>`;
     const form = $("#fn");
-    form.categoria.value = n.categoria;
+    // si el grupo ya se dio de baja, se agrega su opción para no perderlo
+    if (![...form.de.options].some((o) => o.value === valorDe(n))) form.de.add(new Option(textoDe(n), valorDe(n)), 0);
+    form.de.value = valorDe(n);
     const editor = crearEditor($("#ed-n"), n.contenido, { placeholder: "Escribe la noticia aquí. Puedes pegar texto de WhatsApp o Word." });
     marcarCambios(form);
 
@@ -540,7 +571,7 @@
 
     $("#guardar").addEventListener("click", conCarga($("#guardar"), async () => {
       const datos = {
-        categoria: form.categoria.value, fecha: form.fecha.value, titulo: form.titulo.value,
+        de: form.de.value, fecha: form.fecha.value, hora: form.hora.value, titulo: form.titulo.value,
         contenido: editor.html(), imagen, publicado: form.publicado.checked,
       };
       if (!datos.titulo.trim()) { aviso("Falta el título.", true); return; }
@@ -550,7 +581,6 @@
         : await api(`/api/admin/noticias/${n.id}`, { method: "PUT", body: datos });
       cambiosSinGuardar = false;
       aviso(datos.publicado ? "Guardado y publicado." : "Guardado como borrador.");
-      filtroNoticias = "";
       navegar(nueva ? `#noticias/${r.id}` : "#noticias");
     }));
     if ($("#borrar")) $("#borrar").addEventListener("click", conCarga($("#borrar"), async () => {
@@ -616,7 +646,7 @@
         <h2>Dar acceso a alguien</h2>
         <form id="fu" class="u-alta" novalidate>
           <label class="c">Correo <input type="email" name="email" required placeholder="correo@ejemplo.com" autocomplete="off"></label>
-          <label class="c">Nombre <input name="nombre" maxlength="80" placeholder="Opcional"></label>
+          <label class="c">Nombre o apodo <input name="nombre" maxlength="40" placeholder="Sale en sus noticias"></label>
           <label class="c">Puede
             <select name="rol">
               <option value="editor">Editor (grupos y noticias)</option>
@@ -691,7 +721,14 @@
     vista.innerHTML = `
       ${obligatorio ? "" : `<a class="volver" href="#grupos">← Regresar</a>`}
       <div class="caja-entrar">
-        <h1>${obligatorio ? "Crea tu contraseña" : "Mi contraseña"}</h1>
+        ${obligatorio ? "" : `<h1>Mi cuenta</h1>
+        <form id="fp" novalidate>
+          <label class="c">Nombre o apodo <input name="nombre" maxlength="40" value="${esc(YO.nombre || "")}" placeholder="Ej. Juan R."></label>
+          <p class="ayuda">Es lo que sale en las noticias que publiques (“Publicado por …”). Tu correo no se muestra.</p>
+          <button type="submit" class="btn" id="g-nombre">Guardar nombre</button>
+        </form>
+        <h2 style="margin-top:28px">Cambiar contraseña</h2>`}
+        ${obligatorio ? `<h1>Crea tu contraseña</h1>` : ""}
         ${obligatorio ? `<p class="ayuda">Entraste con una contraseña temporal. Ponle una tuya para seguir (mínimo 8 caracteres). Guárdala bien.</p>` : ""}
         <form id="fc" novalidate>
           ${obligatorio ? "" : `<label class="c">Contraseña actual <input type="password" name="actual" autocomplete="current-password" required></label>`}
@@ -702,6 +739,16 @@
         </form>
       </div>`;
     const form = $("#fc");
+    if ($("#fp")) {
+      $("#fp").addEventListener("submit", (e) => { e.preventDefault(); $("#g-nombre").click(); });
+      $("#g-nombre").addEventListener("click", conCarga($("#g-nombre"), async () => {
+        const nombre = $("#fp").nombre.value.trim();
+        if (!nombre) { aviso("Escribe un nombre o apodo.", true); return; }
+        const r = await api("/api/admin/perfil", { method: "POST", body: { nombre } });
+        YO.nombre = r.nombre;
+        aviso("Nombre guardado.");
+      }));
+    }
     $("#ver-c").addEventListener("change", (e) => form.querySelectorAll("input[type=password], input[data-pw]").forEach((i) => {
       i.dataset.pw = "1"; i.type = e.target.checked ? "text" : "password";
     }));

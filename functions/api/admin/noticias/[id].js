@@ -9,13 +9,14 @@ const idValido = (p) => (/^\d{1,9}$/.test(String(p.id)) ? Number(p.id) : null);
 export async function onRequestPut({ request, env, params, data }) {
   const id = idValido(params);
   if (!id) return error("Noticia no válida.");
-  const r = datosNoticia(await leerJSON(request), data.usuario.email);
+  const r = await datosNoticia(env, await leerJSON(request), data.usuario.email);
   if (r.error) return error(r.error);
   const n = r.datos;
   const res = await env.DB.prepare(
-    `UPDATE noticias SET categoria = ?, titulo = ?, fecha = ?, resumen = ?, contenido = ?, imagen = ?, publicado = ?,
-            autor = ?, actualizado = datetime('now') WHERE id = ?`
-  ).bind(n.categoria, n.titulo, n.fecha, n.resumen, n.contenido, n.imagen, n.publicado, n.autor, id).run();
+    `UPDATE noticias SET categoria = ?, titulo = ?, fecha = ?, hora = ?, resumen = ?, contenido = ?, imagen = ?, publicado = ?,
+            autor = COALESCE(autor, ?), de_tipo = ?, de_distrito = ?, de_grupo_id = ?, de_nombre = ?, actualizado = datetime('now') WHERE id = ?`
+  ).bind(n.categoria, n.titulo, n.fecha, n.hora, n.resumen, n.contenido, n.imagen, n.publicado, n.autor,
+         n.de_tipo, n.de_distrito, n.de_grupo_id, n.de_nombre, id).run();
   if (!res.meta.changes) return error("Esa noticia ya no existe.", 404);
   await anotar(env, data.usuario, "noticia editada", `#${id} ${n.titulo}`);
   return json({ ok: true, id });

@@ -25,7 +25,7 @@ export async function onRequestPost({ request, env, data }) {
     `INSERT INTO usuarios (email, nombre, rol, activo, clave, cambiar_clave, intentos) VALUES (?, ?, ?, 1, ?, 1, 0)
      ON CONFLICT(email) DO UPDATE SET nombre = excluded.nombre, rol = excluded.rol, activo = 1,
        clave = excluded.clave, cambiar_clave = 1, intentos = 0, bloqueado_hasta = NULL`
-  ).bind(email, campo(e.nombre, 80), rol, await cifrarClave(temporal)).run();
+  ).bind(email, campo(e.nombre, 40), rol, await cifrarClave(temporal)).run();
   await env.DB.prepare("DELETE FROM sesiones WHERE email = ?").bind(email).run();
   await anotar(env, data.usuario, "usuario dado de alta", `${email} (${rol})`);
   return json({ ok: true, email, temporal }, 201);

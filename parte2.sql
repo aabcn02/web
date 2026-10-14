@@ -21,11 +21,16 @@ CREATE TABLE IF NOT EXISTS noticias (
   categoria TEXT NOT NULL DEFAULT 'noticia' CHECK (categoria IN ('noticia', 'publicacion', 'reflexion')),
   titulo TEXT NOT NULL,
   fecha TEXT NOT NULL,
+  hora TEXT,
   resumen TEXT,
   contenido TEXT NOT NULL DEFAULT '',
   imagen TEXT,
   publicado INTEGER NOT NULL DEFAULT 1,
   autor TEXT,
+  de_tipo TEXT NOT NULL DEFAULT 'area',
+  de_distrito TEXT,
+  de_grupo_id INTEGER,
+  de_nombre TEXT,
   creado TEXT NOT NULL DEFAULT (datetime('now')),
   actualizado TEXT NOT NULL DEFAULT (datetime('now'))
 );

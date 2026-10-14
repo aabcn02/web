@@ -1,7 +1,7 @@
 // /sitemap.xml → mapa del sitio para Google (se arma solo con las páginas y noticias actuales)
 import { URL_SITIO } from "../lib/seo.js";
 
-const FIJAS = ["/", "/directorio", "/mapa", "/literatura", "/reflexion", "/noticias?c=noticia", "/noticias?c=publicacion"];
+const FIJAS = ["/", "/directorio", "/mapa", "/literatura", "/reflexion", "/noticias"];
 
 export async function onRequestGet({ env }) {
   const urls = FIJAS.map((r) => ({ loc: URL_SITIO + r, prioridad: r === "/" || r === "/directorio" ? "1.0" : "0.8" }));

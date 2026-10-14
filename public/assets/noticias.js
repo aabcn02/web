@@ -1,24 +1,45 @@
-// /noticias?c=noticia|publicacion|reflexion  → lista
-// /noticias?id=12                            → una noticia completa
+// /noticias        → lista con filtro por quién publica (Área, distrito o grupo)
+// /noticias?id=12  → una noticia completa
 (async function () {
   const cont = document.getElementById("noticias");
   if (!cont) return;   // en el Inicio solo se usan las funciones de abajo
   const q = new URLSearchParams(location.search);
-  const CATS = { noticia: "Noticias", publicacion: "Publicaciones" };
 
   try {
     if (q.get("id")) return await detalle(q.get("id"));
-    const c = CATS[q.get("c")] ? q.get("c") : "noticia";
-    document.title = `${CATS[c]} · AA Área 64 Región 02`;
-    const r = await fetch(`/api/noticias?c=${c}`);
-    const lista = r.ok ? await r.json() : [];
+    const [lista, grupos] = await Promise.all([
+      fetch("/api/noticias").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/grupos").then((r) => (r.ok ? r.json() : [])).catch(() => []),
+    ]);
     cont.innerHTML = `
-      <h1>${CATS[c]}</h1>
-      <nav class="cat-nav" aria-label="Secciones">${Object.entries(CATS).map(([k, v]) =>
-        `<a href="/noticias?c=${k}"${k === c ? ' aria-current="page"' : ""}>${v}</a>`).join("")}</nav>
-      ${lista.length
-        ? `<div class="noticias">${lista.map(tarjetaNoticia).join("")}</div>`
-        : `<p class="vacio">Todavía no hay publicaciones en esta sección.</p>`}`;
+      <h1>Noticias</h1>
+      <section class="filtros filtros-noticias" aria-label="Filtro">
+        <label><span class="oculto-vis">Quién publica</span>
+          <select id="f-de">${opcionesDe(grupos, "Ver: todas las noticias")}</select>
+        </label>
+        <button id="limpiar" class="limpiar" type="button" hidden>Limpiar</button>
+      </section>
+      <p class="total" id="total"></p>
+      <div id="lista-n"></div>`;
+    const sel = document.getElementById("f-de");
+    const limpiar = document.getElementById("limpiar");
+    if (q.get("de") && [...sel.options].some((o) => o.value === q.get("de"))) sel.value = q.get("de");
+    const pintar = () => {
+      const v = sel.value;
+      const vis = lista.filter((n) => coincideDe(n, v));
+      limpiar.hidden = !v;
+      document.getElementById("total").textContent = vis.length === 1 ? "1 noticia" : `${vis.length} noticias`;
+      document.getElementById("lista-n").innerHTML = vis.length
+        ? `<div class="noticias">${vis.map(tarjetaNoticia).join("")}</div>`
+        : `<p class="vacio">${v ? "No hay noticias de esta opción todavía." : "Todavía no hay noticias."}</p>`;
+      const u = new URL(location.href);
+      if (v) u.searchParams.set("de", v); else u.searchParams.delete("de");
+      u.searchParams.delete("c");
+      history.replaceState(null, "", u);
+    };
+    sel.addEventListener("change", pintar);
+    limpiar.addEventListener("click", () => { sel.value = ""; pintar(); });
+    pintar();
   } catch {
     cont.innerHTML = `<p class="error">No se pudieron cargar las noticias. Intenta de nuevo en un momento.</p>`;
   }
@@ -26,16 +47,17 @@
   async function detalle(id) {
     const r = await fetch(`/api/noticias?id=${encodeURIComponent(id)}`);
     if (!r.ok) {
-      cont.innerHTML = `<article class="hoja"><h1>No encontrada</h1><p>Esta publicación ya no está disponible. <a href="/noticias">Ver noticias</a></p></article>`;
+      cont.innerHTML = `<article class="hoja"><h1>No encontrada</h1><p>Esta noticia ya no está disponible. <a href="/noticias">Ver noticias</a></p></article>`;
       return;
     }
     const n = await r.json();
     document.title = `${n.titulo} · AA Área 64 Región 02`;
     cont.innerHTML = `
-      <a class="volver-pub" href="/noticias?c=${esc(n.categoria)}">← ${esc(CATS[n.categoria] || "Noticias")}</a>
+      <a class="volver-pub" href="/noticias">← Noticias</a>
       <article class="hoja nota">
-        <p class="nota-fecha">${esc(fechaLarga(n.fecha))}</p>
+        <p class="nota-fecha">${esc(cuandoNoticia(n))}</p>
         <h1>${esc(n.titulo)}</h1>
+        <p class="nota-de">Publicado por ${n.autor_nombre ? `<strong>${esc(n.autor_nombre)}</strong> · ` : ""}${esc(textoDe(n))}</p>
         ${n.imagen ? `<img class="nota-img" src="${esc(n.imagen)}" alt="">` : ""}
         <div id="cuerpo" class="contenido"></div>
         <div class="acciones-grupo" style="margin-top:20px">
@@ -57,17 +79,69 @@ function tarjetaNoticia(n) {
   return `<a class="noticia" href="/noticias?id=${esc(n.id)}">
     ${n.imagen ? `<img src="${esc(n.imagen)}" alt="" loading="lazy">` : `<span class="noticia-sin"></span>`}
     <span class="noticia-txt">
-      <small>${esc(fechaLarga(n.fecha))}</small>
+      <small>${esc(cuandoNoticia(n))}</small>
       <strong>${esc(n.titulo)}</strong>
+      <em class="noticia-de">${esc(textoDe(n))}${n.autor_nombre ? `<span class="noticia-por"> · por ${esc(n.autor_nombre)}</span>` : ""}</em>
       ${n.resumen ? `<span>${esc(n.resumen)}</span>` : ""}
     </span>
   </a>`;
 }
 
-function fechaLarga(f) {
-  const [a, m, d] = String(f || "").split("-").map(Number);
+const COMITES = {
+  agenda: "Comité de Agenda",
+  archivos: "Comité de Archivos Históricos",
+  ccp: "Comité de Cooperación con la Comunidad Profesional",
+  finanzas: "Comité de Finanzas",
+  ip: "Comité de Información Pública",
+  correccionales: "Comité de Instituciones Correccionales",
+  literatura: "Comité de Literatura",
+  plenitud: "Comité de Plenitud",
+  tratamiento: "Comité de Tratamiento y Accesibilidades",
+};
+
+// "Área 64 Región 02" · "Comité de … · Área 64" · "Distrito 3" · "Grupo 3 de septiembre · Distrito 1"
+function textoDe(n) {
+  if (n.de_tipo === "comite") return `${n.de_nombre} · Área 64`;
+  if (n.de_tipo === "grupo") return `Grupo ${n.de_nombre || ""}${n.de_distrito ? ` · Distrito ${n.de_distrito}` : ""}`;
+  if (n.de_tipo === "distrito") return `Distrito ${n.de_distrito}`;
+  return "Área 64 Región 02";
+}
+
+// Filtro: "area", "distrito:3" (incluye las de sus grupos) o "grupo:12"
+function coincideDe(n, v) {
+  if (!v) return true;
+  if (v === "area") return !n.de_tipo || n.de_tipo === "area" || n.de_tipo === "comite";
+  const [tipo, val] = v.split(":");
+  if (tipo === "comite") return n.de_tipo === "comite" && n.de_nombre === COMITES[val];
+  if (tipo === "distrito") return String(n.de_distrito) === val;
+  if (tipo === "grupo") return String(n.de_grupo_id) === val;
+  return true;
+}
+
+// Opciones del menú: Área, cada distrito y los grupos agrupados por distrito
+function opcionesDe(grupos, primera) {
+  const porDistrito = {};
+  for (const g of grupos) (porDistrito[g.distrito] ||= []).push(g);
+  const ds = Object.keys(porDistrito).sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0) || a.localeCompare(b));
+  const op = (v, t) => `<option value="${esc(v)}">${esc(t)}</option>`;
+  return (primera !== null ? op("", primera) : "") +
+    `<optgroup label="Área 64 Región 02">${op("area", "Área 64 Región 02 (todo)")}${
+      Object.entries(COMITES).map(([k, t]) => op(`comite:${k}`, t)).join("")}</optgroup>` +
+    `<optgroup label="Distritos">${ds.map((d) => op(`distrito:${d}`, `Distrito ${d}`)).join("")}</optgroup>` +
+    ds.map((d) => `<optgroup label="Grupos del distrito ${esc(d)}">${porDistrito[d]
+      .sort((a, b) => a.grupo.localeCompare(b.grupo, "es"))
+      .map((g) => op(`grupo:${g.id}`, g.grupo)).join("")}</optgroup>`).join("");
+}
+
+function cuandoNoticia(n) {
+  const [a, m, d] = String(n.fecha || "").split("-").map(Number);
   if (!a) return "";
-  return new Date(a, m - 1, d).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+  let t = new Date(a, m - 1, d).toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+  if (n.hora) {
+    const [h, min] = n.hora.split(":").map(Number);
+    t += ` · ${((h + 11) % 12) + 1}:${String(min).padStart(2, "0")} ${h < 12 ? "a. m." : "p. m."}`;
+  }
+  return t;
 }
 
 // Igual que en las páginas: solo deja etiquetas y atributos seguros

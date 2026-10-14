@@ -6,7 +6,7 @@ const SITIO = {
   titulo: "Alcohólicos Anónimos®",
   subtitulo: "Área 64 Región 02",
   pie: "Alcohólicos Anónimos en Mexicali, San Luis Río Colorado, San Felipe y Valle de Mexicali. Área 64 BCN2.",
-  correo: "contacto@aabcn02.org",
+  correo: "bajanorte2@aamexico.org.mx",
   telefono: "686 582 3360",
 };
 
@@ -23,12 +23,11 @@ const MENU = [
   ]},
   { t: "Miembros AA", sub: [
     { t: "Literatura",    u: "/literatura" },
-    { t: "Publicaciones", u: "/noticias?c=publicacion" },
     { t: "Reflexión",     u: "/reflexion" },
   ]},
   { t: "Grupos",     u: "/mapa" },
   { t: "Directorio", u: "/directorio" },
-  { t: "Noticias",   u: "/noticias?c=noticia" },
+  { t: "Noticias",   u: "/noticias" },
   { t: "Contacto",   u: "/pagina?p=contacto" },
 ];
 
