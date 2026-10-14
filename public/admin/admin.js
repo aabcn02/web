@@ -51,8 +51,20 @@
       return `<option value="${m}">${esc(t.charAt(0).toUpperCase() + t.slice(1))}</option>`;
     }).join("");
   }
-  function opcionesDe(grupos) {
+  // Con "noticias": solo las opciones que tienen noticias (para el filtro de la lista)
+  function opcionesDe(grupos, noticias) {
     const por = {};
+    if (noticias) {
+      const tiene = (v) => noticias.some((n) => valorDe(n) === v || (v.startsWith("distrito:") && `distrito:${n.de_distrito}` === v));
+      const area = noticias.some((n) => !n.de_tipo || n.de_tipo === "area" || n.de_tipo === "comite");
+      const op = (v, t) => `<option value="${esc(v)}">${esc(t)}</option>`;
+      const ds = [...new Set(noticias.map((n) => n.de_distrito).filter(Boolean).map(String))].sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
+      const gs = new Map(noticias.filter((n) => n.de_tipo === "grupo").map((n) => [n.de_grupo_id, n]));
+      return (area ? `<optgroup label="Área 64 Región 02">${op("area", "Área 64 Región 02 (todo)")}${
+          Object.entries(COMITES).filter(([k]) => tiene(`comite:${k}`)).map(([k, t]) => op(`comite:${k}`, t)).join("")}</optgroup>` : "") +
+        (ds.length ? `<optgroup label="Distritos">${ds.map((d) => op(`distrito:${d}`, `Distrito ${d}`)).join("")}</optgroup>` : "") +
+        (gs.size ? `<optgroup label="Grupos">${[...gs.values()].map((n) => op(`grupo:${n.de_grupo_id}`, n.de_nombre)).join("")}</optgroup>` : "");
+    }
     for (const g of grupos) (por[g.distrito] ||= []).push(g);
     const ds = Object.keys(por).sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0) || a.localeCompare(b));
     const op = (v, t) => `<option value="${esc(v)}">${esc(t)}</option>`;
@@ -490,7 +502,7 @@
       </div>
       <div class="barra filtros-n">
         <input type="search" id="nq" placeholder="Buscar por título…" autocomplete="off">
-        <select id="nd" aria-label="De qué es"><option value="">Todas</option>${opcionesDe(grupos)}</select>
+        <select id="nd" aria-label="De qué es"><option value="">Todas</option>${opcionesDe(grupos, noticias)}</select>
         <select id="nm" aria-label="Mes"><option value="">Todos los meses</option>${opcionesMes(noticias)}</select>
       </div>
       <div class="lista" id="nl"></div>`;

@@ -7,15 +7,13 @@
 
   try {
     if (q.get("id")) return await detalle(q.get("id"));
-    const [lista, grupos] = await Promise.all([
-      fetch("/api/noticias").then((r) => (r.ok ? r.json() : [])),
-      fetch("/api/grupos").then((r) => (r.ok ? r.json() : [])).catch(() => []),
-    ]);
+    const r = await fetch("/api/noticias");
+    const lista = r.ok ? await r.json() : [];
     cont.innerHTML = `
       <h1>Noticias</h1>
       <section class="filtros filtros-noticias" aria-label="Filtro">
         <label><span class="oculto-vis">Quién publica</span>
-          <select id="f-de">${opcionesDe(grupos, "De: todas")}</select>
+          <select id="f-de">${opcionesConNoticias(lista, "De: todas")}</select>
         </label>
         <label><span class="oculto-vis">Mes</span>
           <select id="f-mes"><option value="">Mes: todos</option>${opcionesMes(lista)}</select>
@@ -123,6 +121,24 @@ function coincideDe(n, v) {
   if (tipo === "distrito") return String(n.de_distrito) === val;
   if (tipo === "grupo") return String(n.de_grupo_id) === val;
   return true;
+}
+
+// Opciones del filtro: solo el Área, comités, distritos y grupos que SÍ tienen noticias
+function opcionesConNoticias(lista, primera) {
+  const op = (v, t) => `<option value="${esc(v)}">${esc(t)}</option>`;
+  const hayArea = lista.some((n) => !n.de_tipo || n.de_tipo === "area" || n.de_tipo === "comite");
+  const comites = Object.entries(COMITES).filter(([, t]) => lista.some((n) => n.de_tipo === "comite" && n.de_nombre === t));
+  const distritos = [...new Set(lista.map((n) => n.de_distrito).filter(Boolean).map(String))]
+    .sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0) || a.localeCompare(b));
+  const grupos = new Map();
+  for (const n of lista) if (n.de_tipo === "grupo" && n.de_grupo_id) grupos.set(String(n.de_grupo_id), n);
+  let html = op("", primera);
+  if (hayArea) html += `<optgroup label="Área 64 Región 02">${op("area", "Área 64 Región 02 (todo)")}${comites.map(([k, t]) => op(`comite:${k}`, t)).join("")}</optgroup>`;
+  if (distritos.length) html += `<optgroup label="Distritos">${distritos.map((d) => op(`distrito:${d}`, `Distrito ${d}`)).join("")}</optgroup>`;
+  if (grupos.size) html += `<optgroup label="Grupos">${[...grupos.values()]
+    .sort((a, b) => String(a.de_nombre).localeCompare(String(b.de_nombre), "es"))
+    .map((n) => op(`grupo:${n.de_grupo_id}`, `${n.de_nombre} (Distrito ${n.de_distrito})`)).join("")}</optgroup>`;
+  return html;
 }
 
 // Opciones del menú: Área, cada distrito y los grupos agrupados por distrito
