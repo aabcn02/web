@@ -817,6 +817,7 @@
           <label class="c">Correo <input type="email" name="email" autocomplete="username" required autofocus></label>
           <label class="c">Contraseña <input type="password" name="clave" autocomplete="current-password" required></label>
           <label class="casilla"><input type="checkbox" id="ver-e"> Mostrar contraseña</label>
+          <div id="robot" class="robot" hidden></div>
           <button type="submit" class="btn" id="entrar">Entrar</button>
         </form>
         <p class="ayuda">¿Olvidaste tu contraseña? Pídele al administrador del sitio que te dé una nueva.</p>
@@ -824,12 +825,48 @@
     const form = $("#fe");
     $("#ver-e").addEventListener("change", (e) => { form.clave.type = e.target.checked ? "text" : "password"; });
     form.addEventListener("submit", (e) => { e.preventDefault(); $("#entrar").click(); });
+
+    // "No soy robot" (Turnstile): solo si está configurado en Cloudflare
+    let robot = { activo: false, token: "", id: null };
+    prepararRobot(robot);
+
     $("#entrar").addEventListener("click", conCarga($("#entrar"), async () => {
       const f = Object.fromEntries(new FormData(form));
       if (!f.email || !f.clave) { aviso("Escribe tu correo y tu contraseña.", true); return; }
-      await api("/api/acceso/entrar", { method: "POST", body: f });
-      location.reload();
+      if (robot.activo && !robot.token) { aviso("Espera a que aparezca la palomita de “no soy robot”.", true); return; }
+      try {
+        await api("/api/acceso/entrar", { method: "POST", body: { email: f.email, clave: f.clave, turnstile: robot.token } });
+        location.reload();
+      } finally {
+        // cada comprobación sirve una sola vez: se pide otra para el siguiente intento
+        if (robot.activo && window.turnstile) { robot.token = ""; try { window.turnstile.reset(robot.id); } catch (_) {} }
+      }
     }));
+  }
+
+  async function prepararRobot(robot) {
+    let sitekey = null;
+    try { sitekey = (await (await fetch("/api/acceso/turnstile")).json()).sitekey; } catch (_) { return; }
+    if (!sitekey) return;
+    robot.activo = true;
+    const caja = $("#robot");
+    if (!caja) return;
+    caja.hidden = false;
+    const pintar = () => {
+      robot.id = window.turnstile.render(caja, {
+        sitekey, language: "es",
+        callback: (t) => { robot.token = t; },
+        "expired-callback": () => { robot.token = ""; },
+        "error-callback": () => { robot.token = ""; },
+      });
+    };
+    if (window.turnstile) return pintar();
+    const s = document.createElement("script");
+    s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    s.async = true;
+    s.onload = pintar;
+    s.onerror = () => { caja.textContent = "No se pudo cargar la verificación. Revisa tu internet y recarga la página."; };
+    document.head.appendChild(s);
   }
 
   /* ---------- Arranque ---------- */

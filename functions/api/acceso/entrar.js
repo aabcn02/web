@@ -1,6 +1,7 @@
 // POST /api/acceso/entrar  { email, clave }  → crea la sesión (cookie)
 import { json, error, leerJSON } from "../../../lib/http.js";
 import { claveCorrecta, crearSesion } from "../../../lib/auth.js";
+import { verificarTurnstile } from "../../../lib/turnstile.js";
 
 const MAX_INTENTOS = 5;
 const BLOQUEO_MIN = 15;
@@ -12,6 +13,10 @@ export async function onRequestPost({ request, env }) {
   const email = String(e?.email || "").trim().toLowerCase().slice(0, 120);
   const clave = String(e?.clave || "").slice(0, 200);
   if (!email || !clave) return error("Escribe tu correo y tu contraseña.");
+  // Primero el "no soy robot": un robot no llega ni a contar intentos (así no puede bloquear la cuenta de nadie)
+  if (!(await verificarTurnstile(env, e?.turnstile, request.headers.get("cf-connecting-ip")))) {
+    return error("No se pudo comprobar que no eres un robot. Espera unos segundos e intenta de nuevo.", 403);
+  }
 
   const u = await env.DB.prepare(
     `SELECT email, clave, intentos, bloqueado_hasta, bloqueado_hasta > datetime('now') AS bloqueado

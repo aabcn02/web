@@ -10,11 +10,11 @@ const SEGURIDAD = {
   "permissions-policy": "camera=(), microphone=(), geolocation=()",
   "strict-transport-security": "max-age=31536000; includeSubDomains",
   "content-security-policy":
-    "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; " +
+    "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://challenges.cloudflare.com; " +
     "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
     "font-src 'self' https://fonts.gstatic.com; " +
     "img-src 'self' data: blob: https://tile.openstreetmap.org https://cdnjs.cloudflare.com https://images.squarespace-cdn.com https://aamexico.org; " +
-    "connect-src 'self'; frame-src https://www.youtube-nocookie.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+    "connect-src 'self'; frame-src https://www.youtube-nocookie.com https://challenges.cloudflare.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
 };
 
 // Qué se guarda en caché y cuántos segundos (lo del panel y el login NUNCA)

@@ -132,3 +132,6 @@ button.salir { background: transparent; font: inherit; font-size: 14px; cursor: 
   .botones.pie-f .btn, .botones.pie-f .btn-sec { flex: 1 1 auto; }
   #mapa-ed { height: 260px; }
 }
+
+.robot { min-height: 65px; margin: 4px 0 8px; }
+.robot[hidden] { display: none; }

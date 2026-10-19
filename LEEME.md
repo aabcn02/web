@@ -35,6 +35,7 @@
 - Base de datos D1: `aabcn02-db`
 - Enlace (binding) D1 en el proyecto de Pages: nombre de variable `DB`
 - Bucket R2: `aabcn02-fotos`, enlace (binding) en Pages: `FOTOS`
+- Turnstile ("no soy robot" del login): variable `TURNSTILE_SITEKEY` y secreto `TURNSTILE_SECRET`. Si no están, el login funciona sin la casilla.
 - Secreto en Pages: `YOUTUBE_KEY` (clave de YouTube Data API v3). Opcional: `YOUTUBE_LISTA` para cambiar de lista.
 - Dominio personalizado: `aabcn02.org`
 
