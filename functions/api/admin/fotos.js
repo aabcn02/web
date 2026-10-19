@@ -11,8 +11,30 @@ const TIPOS = {
   pdf:  { mime: "application/pdf", max: 15 * 1024 * 1024, firma: (b) => ascii(b, 0, 5) === "%PDF-" },
 };
 
+// Topes para que ni un error ni una cuenta robada puedan llenar el almacenamiento (y generar cobro)
+const MAX_ARCHIVOS_DIA = 3;                        // por usuario, en 24 horas
+const MAX_MB_DIA = 15;                             // por usuario, en 24 horas (suma de sus archivos)
+const MAX_MB_DIA_SITIO = 25;                       // entre TODOS, en 24 horas (25 MB × 365 ≈ 9 GB al año como máximo)
+const MAX_GB_TOTAL = 9;                            // R2 gratis llega a 10 GB: se para antes
+
 export async function onRequestPost({ request, env, data }) {
   if (!env.FOTOS) return error("Falta conectar el almacenamiento de fotos (R2, binding FOTOS).", 500);
+  // Se rechaza ANTES de recibir el archivo si dice que pesa de más
+  const largo = Number(request.headers.get("content-length") || 0);
+  if (largo > 15 * 1024 * 1024) return error("El archivo pesa demasiado (máximo 15 MB).", 413);
+  try {
+    const hoy = await env.DB.prepare(
+      "SELECT COUNT(*) AS n, COALESCE(SUM(bytes), 0) AS b FROM subidas WHERE email = ? AND fecha > datetime('now', '-1 day')"
+    ).bind(data.usuario.email).first();
+    if (hoy.n >= MAX_ARCHIVOS_DIA) return error(`Llegaste al límite de ${MAX_ARCHIVOS_DIA} archivos por día. Intenta mañana.`, 429);
+    if (hoy.b >= MAX_MB_DIA * 1024 * 1024) return error(`Llegaste al límite de ${MAX_MB_DIA} MB por día. Intenta mañana.`, 429);
+    if (hoy.b + largo > MAX_MB_DIA * 1024 * 1024) return error(`Ese archivo pasa tu límite de ${MAX_MB_DIA} MB por día. Intenta mañana.`, 429);
+    const sitio = await env.DB.prepare("SELECT COALESCE(SUM(bytes), 0) AS b FROM subidas WHERE fecha > datetime('now', '-1 day')").first();
+    if (sitio.b + largo > MAX_MB_DIA_SITIO * 1024 * 1024) return error("Se llegó al límite de subidas del sitio por hoy. Intenta mañana.", 429);
+    const total = await env.DB.prepare("SELECT COALESCE(SUM(bytes), 0) AS b FROM subidas").first();
+    if (total.b >= MAX_GB_TOTAL * 1024 * 1024 * 1024) return error("El almacenamiento de fotos está casi lleno. Avisa al administrador del sitio.", 507);
+  } catch (_) { /* tabla "subidas" todavía no creada: se sigue con los topes por archivo */ }
+
   const buf = new Uint8Array(await request.arrayBuffer());
   if (!buf.length) return error("El archivo está vacío.");
   const ext = Object.keys(TIPOS).find((k) => TIPOS[k].firma(buf));
@@ -25,6 +47,9 @@ export async function onRequestPost({ request, env, data }) {
   const nombre = limpiarNombre(new URL(request.url).searchParams.get("nombre"), ext);
   const clave = `${carpeta}/${hoy.getUTCFullYear()}/${String(hoy.getUTCMonth() + 1).padStart(2, "0")}/${crypto.randomUUID().slice(0, 8)}-${nombre}`;
   await env.FOTOS.put(clave, buf, { httpMetadata: { contentType: t.mime } });
+  try {
+    await env.DB.prepare("INSERT INTO subidas (email, clave, bytes) VALUES (?, ?, ?)").bind(data.usuario.email, clave, buf.length).run();
+  } catch (_) { /* tabla no creada todavía */ }
   await anotar(env, data.usuario, "archivo subido", clave);
   return json({ ok: true, url: `/fotos/${clave}`, tipo: ext }, 201);
 }
