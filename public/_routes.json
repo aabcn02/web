@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "include": ["/*"],
+  "exclude": [
+    "/",
+    "/index.html",
+    "/assets/*",
+    "/admin/*",
+    "/literatura",
+    "/literatura.html",
+    "/reflexion",
+    "/reflexion.html",
+    "/404.html",
+    "/robots.txt"
+  ]
+}

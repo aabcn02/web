@@ -14,11 +14,10 @@ export async function onRequestGet({ env, request, waitUntil }) {
   const f = hoy(ZONA);
 
   const cache = caches.default;
-  const llaveCache = new Request(`https://cache.aabcn02.org/reflexion/${lista}/${clave(f.m, f.d)}`);
-  if (!verificar) {
-    const guardada = await cache.match(llaveCache);
-    if (guardada) return guardada;
-  }
+  // La revisión (?verificar=1) también se guarda 1 hora, para que nadie gaste la cuota de YouTube recargándola
+  const llaveCache = new Request(`https://cache.aabcn02.org/reflexion/${lista}/${verificar ? "verificar" : clave(f.m, f.d)}`);
+  const guardada = await cache.match(llaveCache);
+  if (guardada) return guardada;
 
   let videos;
   try {
@@ -32,13 +31,15 @@ export async function onRequestGet({ env, request, waitUntil }) {
     const faltan = [];
     const DIAS = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
     DIAS.forEach((n, i) => { for (let d = 1; d <= n; d++) if (!indice.has(clave(i + 1, d))) faltan.push(`${d} de ${NOMBRES_MES[i]}`); });
-    return json({
+    const rev = json({
       videos: videos.length,
       fechas_cubiertas: indice.size,
       faltan,
       repetidas: [...repetidos.entries()].map(([k, t]) => ({ fecha: k, descartados: t })),
       sin_fecha_en_titulo: sinFecha,
-    });
+    }, 200, { "cache-control": "public, max-age=3600" });
+    waitUntil(cache.put(llaveCache, rev.clone()));
+    return rev;
   }
 
   const sel = elegir(indice, f);

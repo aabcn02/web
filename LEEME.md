@@ -85,3 +85,12 @@ Pendientes de llenar: `[TELÉFONO DE OFICINA]` y `[DIRECCIÓN DE LA OFICINA DE �
 - `/sitemap.xml` y `/llms.txt` se generan solos desde la base de datos. `robots.txt` deja fuera el panel.
 - Imagen para compartir: `public/assets/compartir.png`.
 - Después de publicar: dar de alta `https://aabcn02.org/sitemap.xml` en Google Search Console.
+
+## Costos (para que nunca haya sorpresas)
+
+- `public/_routes.json`: los archivos fijos (CSS, JS, Inicio, Literatura, panel) se entregan sin gastar invocaciones de funciones.
+- `functions/_middleware.js`: guarda 60 s en la caché de Cloudflare lo público (directorio, mapa, noticias, páginas, API) y
+  1 día las fotos: la base de datos y R2 se consultan pocas veces aunque haya muchas visitas. Lo del panel nunca se guarda.
+- `indice-noticias.sql`: índice para que las noticias no lean toda la tabla en cada visita (ya aplicado en producción).
+- La reflexión (también `?verificar=1`) se guarda 1 hora: la cuota de YouTube no se agota.
+- En plan gratuito, si algo se pasa del límite **deja de funcionar ese día, no cobra**. Lo único que cobra es R2 arriba de 10 GB.

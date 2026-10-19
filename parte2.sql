@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS noticias (
   creado TEXT NOT NULL DEFAULT (datetime('now')),
   actualizado TEXT NOT NULL DEFAULT (datetime('now'))
 );
-CREATE INDEX IF NOT EXISTS idx_noticias_publicas ON noticias (publicado, categoria, fecha DESC);
+CREATE INDEX IF NOT EXISTS idx_noticias_orden ON noticias (publicado, fecha DESC, hora DESC, id DESC);
 CREATE TABLE IF NOT EXISTS paginas (slug TEXT PRIMARY KEY, titulo TEXT NOT NULL, contenido TEXT NOT NULL, actualizado TEXT NOT NULL DEFAULT (datetime('now')));
 CREATE TABLE IF NOT EXISTS bitacora (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
